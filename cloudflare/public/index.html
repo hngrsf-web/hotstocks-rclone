@@ -61,6 +61,12 @@ body.detail-mode .compact-only{display:none}
 .delta-good{color:var(--good)!important}.delta-bad{color:var(--bad)!important}.delta-warn{color:var(--warn)!important}
 .adaptive-status{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:9px;margin-top:9px}
 .adaptive-note{margin-top:8px;padding:9px 10px;border-radius:9px;background:var(--card2);border:1px solid var(--line);font-size:8px;color:var(--muted);line-height:1.45}
+.adaptive-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.adaptive-kpis .card{padding:10px}
+.adaptive-kpis strong{font-size:17px}
+.adaptive-kpis small{font-size:7px}
+.master-compact{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:650px){.adaptive-kpis{grid-template-columns:1fr 1fr}.adaptive-kpis .card:first-child{grid-column:1/-1}.master-compact{grid-template-columns:1fr}}
 @media(max-width:650px){.compare-head,.compare-row{grid-template-columns:1.2fr 1fr 1fr}.compare-head>:nth-child(4),.compare-row>:nth-child(4){display:none}.adaptive-status{grid-template-columns:1fr 1fr}.adaptive-status>:first-child{grid-column:1/-1}}
 </style>
 </head>
@@ -71,8 +77,8 @@ body.detail-mode .compact-only{display:none}
   <span class="badge accent" id="mode">CLOUD</span>
   <span class="badge" id="fresh">lädt …</span>
   <span class="badge good">READ ONLY</span>
-  <button class="btn" id="adaptiveJump" type="button">Adaptive Lab</button>
-  <button class="btn" id="detailToggle" type="button">Details</button>
+  <button class="btn" id="adaptiveJump" type="button">Adaptive Vergleich</button>
+  <button class="btn" id="detailToggle" type="button">Technische Details</button>
 </div>
 </div></header>
 <main class="wrap">
@@ -164,39 +170,51 @@ body.detail-mode .compact-only{display:none}
     <div><span class="eyebrow">MASTER REPORTING</span><h2>Aktueller Tagesstand</h2></div>
     <span id="masterReportUpdated">wartet auf ersten Tagesreport</span>
   </div>
-  <div class="two">
+  <div class="master-compact">
     <div class="card">
       <div class="row"><b>Gesamtstatus</b><em id="masterOverall">–</em></div>
-      <div class="row"><b>Neueste bestätigte Erkenntnis</b><em id="masterInsight">–</em></div>
-      <div class="row"><b>Aktueller Blocker</b><em id="masterBlocker">–</em></div>
+      <div class="row"><b>Neueste Erkenntnis</b><em id="masterInsight">–</em></div>
     </div>
     <div class="card">
-      <div class="row"><b>Nächster Gate</b><em id="masterNextGate">–</em></div>
-      <div class="row"><b>Nutzeraktion</b><em id="masterAction">Keine Aktion nötig</em></div>
-      <div class="row"><b>Adaptive / AutoOps</b><em id="masterAdaptive">–</em></div>
+      <div class="row"><b>Nächster Schritt</b><em id="masterNextGate">–</em></div>
+      <div class="row"><b>Meine Aktion</b><em id="masterAction">Keine Aktion nötig</em></div>
+    </div>
+  </div>
+  <div class="detail-only" style="margin-top:8px">
+    <div class="two">
+      <div class="card"><div class="row"><b>Aktueller Blocker</b><em id="masterBlocker">–</em></div></div>
+      <div class="card"><div class="row"><b>Adaptive / AutoOps</b><em id="masterAdaptive">–</em></div></div>
     </div>
   </div>
 </section>
 
 <section class="section" id="adaptiveLabSection">
   <div class="sectionhead">
-    <div><span class="eyebrow">PARALLELE STUDIE</span><h2>Adaptive Strategy Lab · V11 Vergleich</h2></div>
+    <div><span class="eyebrow">PARALLELE STUDIE</span><h2>Adaptive Strategy Lab</h2></div>
     <span id="adaptiveUpdated">wartet auf erste Modelldaten</span>
   </div>
   <div class="card">
     <div class="adaptive-status">
-      <div><span>Adaptive Modell</span><strong id="adaptiveModel">WARTET</strong><small id="adaptiveModelMeta">Research / Shadow · keine Live-Orders</small></div>
-      <div><span>Status</span><strong id="adaptiveState">–</strong><small id="adaptiveStateMeta">–</small></div>
-      <div><span>Runner-Version</span><strong id="adaptiveVersion">–</strong><small id="adaptiveVersionMeta">Research Generation –</small></div>
-      <div><span>Walk-Forward n</span><strong id="adaptiveN">–</strong><small id="adaptiveNMeta">unabhängige Outcomes</small></div>
+      <div><span>Adaptive</span><strong id="adaptiveState">–</strong><small id="adaptiveStateMeta">Research / Shadow</small></div>
+      <div><span>Version</span><strong id="adaptiveVersion">–</strong><small id="adaptiveVersionMeta">Research Generation –</small></div>
+      <div><span>Walk-Forward n</span><strong id="adaptiveN">–</strong><small id="adaptiveNMeta">Outcomes</small></div>
+      <div class="detail-only"><span>Modell-ID</span><strong id="adaptiveModel">WARTET</strong><small id="adaptiveModelMeta">keine Live-Orders</small></div>
     </div>
-    <div class="compare-head"><div>Metrik</div><div>V11</div><div>Adaptive</div><div>Δ Adaptive − V11</div></div>
-    <div class="compare-row"><b>Mean Net-R</b><span id="cmpV11Mean">–</span><span id="cmpAdaMean">–</span><span id="cmpDeltaMean">–</span></div>
-    <div class="compare-row"><b>Profit Factor</b><span id="cmpV11Pf">–</span><span id="cmpAdaPf">–</span><span id="cmpDeltaPf">–</span></div>
-    <div class="compare-row"><b>Max Drawdown</b><span id="cmpV11Dd">–</span><span id="cmpAdaDd">–</span><span id="cmpDeltaDd">–</span></div>
-    <div class="compare-row"><b>Win Rate</b><span id="cmpV11Wr">–</span><span id="cmpAdaWr">–</span><span id="cmpDeltaWr">–</span></div>
-    <div class="compare-row"><b>Total Net-R</b><span id="cmpV11Total">–</span><span id="cmpAdaTotal">–</span><span id="cmpDeltaTotal">–</span></div>
-    <div class="adaptive-note" id="adaptiveVerdict">Noch keine gepaarten Vergleichsdaten. Sobald das Adaptive Lab erste Walk-Forward-/Shadow-Outcomes erzeugt, werden Verbesserung und Verschlechterung hier automatisch angezeigt.</div>
+    <div class="adaptive-kpis">
+      <div class="card"><span>Performance Δ</span><strong id="adaCompactDelta">–</strong><small>Adaptive − V11 · Total Net-R</small></div>
+      <div class="card"><span>Adaptive PF</span><strong id="adaCompactPf">–</strong><small>Profit Factor</small></div>
+      <div class="card"><span>Drawdown</span><strong id="adaCompactDd">–</strong><small>Adaptive vs V11</small></div>
+    </div>
+    <div class="adaptive-note" id="adaptiveVerdict">Noch keine gepaarten Vergleichsdaten. Sobald Modelldaten vorliegen, erscheint hier nur die entscheidende Verbesserung/Verschlechterung.</div>
+
+    <div class="detail-only" style="margin-top:10px">
+      <div class="compare-head"><div>Metrik</div><div>V11</div><div>Adaptive</div><div>Δ Adaptive − V11</div></div>
+      <div class="compare-row"><b>Mean Net-R</b><span id="cmpV11Mean">–</span><span id="cmpAdaMean">–</span><span id="cmpDeltaMean">–</span></div>
+      <div class="compare-row"><b>Profit Factor</b><span id="cmpV11Pf">–</span><span id="cmpAdaPf">–</span><span id="cmpDeltaPf">–</span></div>
+      <div class="compare-row"><b>Max Drawdown</b><span id="cmpV11Dd">–</span><span id="cmpAdaDd">–</span><span id="cmpDeltaDd">–</span></div>
+      <div class="compare-row"><b>Win Rate</b><span id="cmpV11Wr">–</span><span id="cmpAdaWr">–</span><span id="cmpDeltaWr">–</span></div>
+      <div class="compare-row"><b>Total Net-R</b><span id="cmpV11Total">–</span><span id="cmpAdaTotal">–</span><span id="cmpDeltaTotal">–</span></div>
+    </div>
   </div>
 </section>
 
@@ -373,6 +391,14 @@ function render(data){
   $('cmpV11Wr').textContent=vWr==null?'–':num(vWr,1)+' %'; $('cmpAdaWr').textContent=aWr==null?'–':num(aWr,1)+' %';
   $('cmpV11Total').textContent=vTot==null?'–':num(vTot,2)+' R'; $('cmpAdaTotal').textContent=aTot==null?'–':num(aTot,2)+' R';
 
+  const compactDelta=Number(metric(delta,'total_net_r','sum_r','delta_total_net_r'));
+  $('adaCompactDelta').textContent=Number.isFinite(compactDelta)?((compactDelta>0?'+':'')+num(compactDelta,2)+' R'):'–';
+  $('adaCompactDelta').style.color=!Number.isFinite(compactDelta)?'var(--muted)':compactDelta>0?'var(--good)':compactDelta<0?'var(--bad)':'var(--text)';
+  $('adaCompactPf').textContent=aPf==null?'–':num(aPf,2);
+  $('adaCompactPf').style.color=aPf==null?'var(--muted)':Number(aPf)>=1.1?'var(--good)':Number(aPf)>=1?'var(--warn)':'var(--bad)';
+  $('adaCompactDd').textContent=(aDd==null||vDd==null)?'–':(num(aDd,1)+' / '+num(vDd,1)+' R');
+  $('adaCompactDd').style.color=(aDd==null||vDd==null)?'var(--muted)':Number(aDd)>Number(vDd)?'var(--good)':'var(--warn)';
+
   setDelta('cmpDeltaMean',metric(delta,'mean_net_r','expectancy_r', 'delta_mean_net_r'),3,' R');
   setDelta('cmpDeltaPf',metric(delta,'profit_factor','pf','delta_profit_factor'),3,'');
   setDeltaLowerBetter('cmpDeltaDd',metric(delta,'max_drawdown_r','max_dd_r','delta_max_drawdown_r'),2,' R');
@@ -405,7 +431,7 @@ const panels=[...document.querySelectorAll('details.panel')];
 function setDetailMode(on){
   document.body.classList.toggle('detail-mode',on);
   panels.forEach(p=>p.open=on);
-  detailToggle.textContent=on?'Kompakt':'Details';
+  detailToggle.textContent=on?'Zur Übersicht':'Technische Details';
   localStorage.setItem('tc_detail_mode',on?'1':'0');
 }
 detailToggle.addEventListener('click',()=>setDetailMode(!document.body.classList.contains('detail-mode')));
