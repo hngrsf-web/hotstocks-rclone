@@ -55,6 +55,13 @@ body.detail-mode .compact-only{display:none}
 @media(max-width:520px){.management{grid-template-columns:1fr 1fr}.mgmt{padding:9px}.mgmt-detail-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.three{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
 @media(max-width:520px){header,main{padding-left:11px;padding-right:11px}.grid{grid-template-columns:1fr 1fr}.flow{grid-template-columns:repeat(3,1fr)}.top{align-items:flex-start;flex-direction:column}.card strong{font-size:16px}}
+.compare-head{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:7px;align-items:center;padding:7px 8px;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.04em}
+.compare-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:7px;align-items:center;padding:9px 8px;border-top:1px solid rgba(37,52,74,.65);font-size:9px}
+.compare-row b{font-size:9px}.compare-row span{text-transform:none;font-size:9px;color:var(--text)}
+.delta-good{color:var(--good)!important}.delta-bad{color:var(--bad)!important}.delta-warn{color:var(--warn)!important}
+.adaptive-status{display:grid;grid-template-columns:2fr 1fr 1fr;gap:9px;margin-top:9px}
+.adaptive-note{margin-top:8px;padding:9px 10px;border-radius:9px;background:var(--card2);border:1px solid var(--line);font-size:8px;color:var(--muted);line-height:1.45}
+@media(max-width:650px){.compare-head,.compare-row{grid-template-columns:1.2fr 1fr 1fr}.compare-head>:nth-child(4),.compare-row>:nth-child(4){display:none}.adaptive-status{grid-template-columns:1fr 1fr}.adaptive-status>:first-child{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -64,6 +71,7 @@ body.detail-mode .compact-only{display:none}
   <span class="badge accent" id="mode">CLOUD</span>
   <span class="badge" id="fresh">lädt …</span>
   <span class="badge good">READ ONLY</span>
+  <button class="btn" id="adaptiveJump" type="button">Adaptive Lab</button>
   <button class="btn" id="detailToggle" type="button">Details</button>
 </div>
 </div></header>
@@ -151,6 +159,27 @@ body.detail-mode .compact-only{display:none}
   </div>
 </details>
 
+<section class="section" id="adaptiveLabSection">
+  <div class="sectionhead">
+    <div><span class="eyebrow">PARALLELE STUDIE</span><h2>Adaptive Strategy Lab · V11 Vergleich</h2></div>
+    <span id="adaptiveUpdated">wartet auf erste Modelldaten</span>
+  </div>
+  <div class="card">
+    <div class="adaptive-status">
+      <div><span>Adaptive Modell</span><strong id="adaptiveModel">WARTET</strong><small id="adaptiveModelMeta">Research / Shadow · keine Live-Orders</small></div>
+      <div><span>Status</span><strong id="adaptiveState">–</strong><small id="adaptiveStateMeta">–</small></div>
+      <div><span>Walk-Forward n</span><strong id="adaptiveN">–</strong><small id="adaptiveNMeta">unabhängige Outcomes</small></div>
+    </div>
+    <div class="compare-head"><div>Metrik</div><div>V11</div><div>Adaptive</div><div>Δ Adaptive − V11</div></div>
+    <div class="compare-row"><b>Mean Net-R</b><span id="cmpV11Mean">–</span><span id="cmpAdaMean">–</span><span id="cmpDeltaMean">–</span></div>
+    <div class="compare-row"><b>Profit Factor</b><span id="cmpV11Pf">–</span><span id="cmpAdaPf">–</span><span id="cmpDeltaPf">–</span></div>
+    <div class="compare-row"><b>Max Drawdown</b><span id="cmpV11Dd">–</span><span id="cmpAdaDd">–</span><span id="cmpDeltaDd">–</span></div>
+    <div class="compare-row"><b>Win Rate</b><span id="cmpV11Wr">–</span><span id="cmpAdaWr">–</span><span id="cmpDeltaWr">–</span></div>
+    <div class="compare-row"><b>Total Net-R</b><span id="cmpV11Total">–</span><span id="cmpAdaTotal">–</span><span id="cmpDeltaTotal">–</span></div>
+    <div class="adaptive-note" id="adaptiveVerdict">Noch keine gepaarten Vergleichsdaten. Sobald das Adaptive Lab erste Walk-Forward-/Shadow-Outcomes erzeugt, werden Verbesserung und Verschlechterung hier automatisch angezeigt.</div>
+  </div>
+</section>
+
 <details class="panel" id="cloudPanel">
   <summary><b>Cloud & technische Details</b><span id="cloudSummary">Verbindung</span></summary>
   <div class="inside">
@@ -176,6 +205,22 @@ function setMgmt(id,state,text){
   el.classList.add(state);
   const target=$(id+'Text');
   if(target) target.textContent=text;
+}
+function firstObj(...xs){return xs.find(x=>x&&typeof x==='object'&&!Array.isArray(x))||{}}
+function metric(obj,...keys){for(const k of keys){if(obj&&obj[k]!=null)return obj[k]}return null}
+function setDelta(id,v,d=3,suffix=''){
+  const el=$(id),n=Number(v);
+  if(!el)return;
+  if(!Number.isFinite(n)){el.textContent='–';el.className='';return}
+  el.textContent=(n>0?'+':'')+num(n,d)+suffix;
+  el.className=n>0?'delta-good':n<0?'delta-bad':'';
+}
+function setDeltaLowerBetter(id,v,d=2,suffix=''){
+  const el=$(id),n=Number(v);
+  if(!el)return;
+  if(!Number.isFinite(n)){el.textContent='–';el.className='';return}
+  el.textContent=(n>0?'+':'')+num(n,d)+suffix;
+  el.className=n<0?'delta-good':n>0?'delta-bad':'';
 }
 function render(data){
   const s=data?.snapshot||{}, cloud=data?.cloud||{}, hist=getHist(s), st=hist?.state||{}, perf=st?.performance||{}, thr=perf?.throughput||{}, eta=perf?.eta||{}, meta=st?.meta_research||st?.prediction_lab?.meta_research||{};
@@ -251,12 +296,69 @@ function render(data){
   }
   const names={H1_STOP_GT_2_5:'H1 · Stop >2,5 %',H2_SIGNAL_1020_PLUS:'H2 · Signal 10:20–10:59',H3_ABS_GAP_10_18:'H3 · Gap 10–18 %',H4_CATALYST_AGE_LE_6H:'H4 · Catalyst ≤6 h',H5_CLV_GE_085:'H5 · CLV ≥0,85'};
   $('hyps').innerHTML=hyps.map(h=>{const e=h.development_extension||{},n=Number(e.n||0),ready=n>=30;return '<div class="hyp"><div><b>'+ (names[h.id]||h.definition||h.id) +'</b><span>Extension n='+int(n)+' · Net-R '+(Number(e.mean_net_r)>=0?'+':'')+num(e.mean_net_r,3)+' · PF '+num(e.profit_factor,3)+'</span></div><em>V12</em><em style="color:'+(ready?'var(--good)':'var(--warn)')+'">'+(ready?'PRÜFBAR':n?'PRELIMINARY':'WARTET')+'</em></div>'}).join('')||'<div class="hyp"><div><b>H1–H5</b><span>Warten auf Research-Daten</span></div><em>V12</em><em>WARTET</em></div>';
+  const researchData=s?.endpoints?.research?.data||{};
+  const adaptive=firstObj(
+    st?.adaptive_strategy_lab,
+    meta?.adaptive_strategy_lab,
+    researchData?.adaptive_strategy_lab,
+    researchData?.adaptive_lab,
+    s?.adaptive_strategy_lab
+  );
+  const adaMetrics=firstObj(adaptive?.metrics,adaptive?.walk_forward_metrics,adaptive?.shadow_metrics);
+  const comparison=firstObj(adaptive?.paired_comparison,adaptive?.comparison,adaptive?.vs_v11);
+  const v11Ref=firstObj(comparison?.v11,adaptive?.v11_reference);
+  const adaRef=firstObj(comparison?.adaptive,adaMetrics);
+  const delta=firstObj(comparison?.delta,comparison?.adaptive_minus_v11);
+
+  const adaptiveHasData=Object.keys(adaptive).length>0 && (adaptive.model_id||adaptive.version||metric(adaRef,'n','sample_n')!=null);
+  $('adaptiveModel').textContent=adaptiveHasData?(adaptive.model_id||adaptive.version||'Adaptive Policy'):'WARTET';
+  $('adaptiveModel').style.color=adaptiveHasData?'var(--accent)':'var(--warn)';
+  $('adaptiveModelMeta').textContent=(adaptive.feature_version?('Features '+adaptive.feature_version+' · '):'')+'Research / Shadow · keine Live-Orders';
+  $('adaptiveState').textContent=adaptive.state||adaptive.lifecycle_state||(adaptiveHasData?'RESEARCH':'–');
+  $('adaptiveStateMeta').textContent=adaptive.drift_status?('Drift '+adaptive.drift_status):(adaptiveHasData?'Walk-Forward / Shadow':'Noch keine Auswertung');
+  $('adaptiveN').textContent=int(metric(adaRef,'n','sample_n','walk_forward_n'));
+  $('adaptiveNMeta').textContent=adaptive.validation_window||adaptive.test_window||'unabhängige Outcomes';
+  $('adaptiveUpdated').textContent=adaptive.updated_at?('Stand '+new Date(adaptive.updated_at).toLocaleString('de-DE')):(adaptiveHasData?'Adaptive Daten vorhanden':'wartet auf erste Modelldaten');
+
+  const vMean=metric(v11Ref,'mean_net_r','expectancy_r'), aMean=metric(adaRef,'mean_net_r','expectancy_r');
+  const vPf=metric(v11Ref,'profit_factor','pf'), aPf=metric(adaRef,'profit_factor','pf');
+  const vDd=metric(v11Ref,'max_drawdown_r','max_dd_r'), aDd=metric(adaRef,'max_drawdown_r','max_dd_r');
+  const vWr=metric(v11Ref,'win_rate_pct','win_rate'), aWr=metric(adaRef,'win_rate_pct','win_rate');
+  const vTot=metric(v11Ref,'total_net_r','sum_r'), aTot=metric(adaRef,'total_net_r','sum_r');
+
+  $('cmpV11Mean').textContent=vMean==null?'–':num(vMean,3)+' R'; $('cmpAdaMean').textContent=aMean==null?'–':num(aMean,3)+' R';
+  $('cmpV11Pf').textContent=vPf==null?'–':num(vPf,3); $('cmpAdaPf').textContent=aPf==null?'–':num(aPf,3);
+  $('cmpV11Dd').textContent=vDd==null?'–':num(vDd,2)+' R'; $('cmpAdaDd').textContent=aDd==null?'–':num(aDd,2)+' R';
+  $('cmpV11Wr').textContent=vWr==null?'–':num(vWr,1)+' %'; $('cmpAdaWr').textContent=aWr==null?'–':num(aWr,1)+' %';
+  $('cmpV11Total').textContent=vTot==null?'–':num(vTot,2)+' R'; $('cmpAdaTotal').textContent=aTot==null?'–':num(aTot,2)+' R';
+
+  setDelta('cmpDeltaMean',metric(delta,'mean_net_r','expectancy_r', 'delta_mean_net_r'),3,' R');
+  setDelta('cmpDeltaPf',metric(delta,'profit_factor','pf','delta_profit_factor'),3,'');
+  setDeltaLowerBetter('cmpDeltaDd',metric(delta,'max_drawdown_r','max_dd_r','delta_max_drawdown_r'),2,' R');
+  setDelta('cmpDeltaWr',metric(delta,'win_rate_pct','win_rate','delta_win_rate_pct'),1,' %');
+  setDelta('cmpDeltaTotal',metric(delta,'total_net_r','sum_r','delta_total_net_r'),2,' R');
+
+  if(adaptiveHasData && Object.keys(comparison).length){
+    const dMean=Number(metric(delta,'mean_net_r','expectancy_r','delta_mean_net_r'));
+    const dPf=Number(metric(delta,'profit_factor','pf','delta_profit_factor'));
+    const dDd=Number(metric(delta,'max_drawdown_r','max_dd_r','delta_max_drawdown_r'));
+    const plus=[],minus=[];
+    if(Number.isFinite(dMean)){(dMean>0?plus:minus).push('Net-R '+(dMean>0?'+':'')+num(dMean,3)+' R')}
+    if(Number.isFinite(dPf)){(dPf>0?plus:minus).push('PF '+(dPf>0?'+':'')+num(dPf,3))}
+    if(Number.isFinite(dDd)){(dDd<0?plus:minus).push('MaxDD '+(dDd>0?'+':'')+num(dDd,2)+' R')}
+    $('adaptiveVerdict').textContent='Gepaarter Vergleich · Verbesserungen: '+(plus.length?plus.join(' · '):'keine bestätigt')+' · Verschlechterungen: '+(minus.length?minus.join(' · '):'keine bestätigt')+'. Research-only bis unabhängige Gates erfüllt sind.';
+  }else{
+    $('adaptiveVerdict').textContent='Noch keine gepaarten Vergleichsdaten. Sobald das Adaptive Lab erste Walk-Forward-/Shadow-Outcomes erzeugt, werden Verbesserung und Verschlechterung hier automatisch angezeigt.';
+  }
+
   $('snapshotTime').textContent=cloud.source_generated_at?new Date(cloud.source_generated_at).toLocaleString('de-DE'):'Noch keine Daten';
   $('snapshotMeta').textContent=(cloud.age_seconds!=null?('Alter '+Math.round(cloud.age_seconds/60)+' min · '):'')+'Read-only · NAS nur ausgehend verbunden';
   $('cloudVersion').textContent=cloud.cloud_version||'–';
   $('cloudSummary').textContent=(cloud.stale?'STALE':'LIVE')+' · '+(ageMin==null?'kein Alter':ageMin+' min');
   $('cloudCard').className='card notice '+(cloud.stale?'danger':'ok');
 }
+const adaptiveJump=$('adaptiveJump');
+adaptiveJump?.addEventListener('click',()=>document.getElementById('adaptiveLabSection')?.scrollIntoView({behavior:'smooth',block:'start'}));
 const detailToggle=$('detailToggle');
 const panels=[...document.querySelectorAll('details.panel')];
 function setDetailMode(on){
