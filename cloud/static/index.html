@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b111b">
+<title>UGREEN Trading Control Cloud</title>
+<style>
+:root{--bg:#08101a;--card:#101927;--card2:#0c1420;--line:#25344a;--text:#eef4fb;--muted:#8ea0b6;--good:#62d6a6;--warn:#f4c66b;--bad:#ff7f86;--accent:#76b9ff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:linear-gradient(180deg,#07101a,#0a111a 35%,#07101a);color:var(--text)}
+header{position:sticky;top:0;z-index:4;background:rgba(8,16,26,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 16px}
+.wrap{max-width:1180px;margin:auto}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.brand{display:grid;gap:2px}.brand b{font-size:15px}.brand span{font-size:10px;color:var(--muted)}
+.badges{display:flex;gap:7px;flex-wrap:wrap}.badge{padding:5px 8px;border:1px solid var(--line);border-radius:999px;font-size:9px}.good{color:var(--good);border-color:#315f4b}.warn{color:var(--warn);border-color:#725d2e}.bad{color:var(--bad);border-color:#733d47}.accent{color:var(--accent);border-color:#35506d}
+main{padding:14px 16px 44px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.card{background:rgba(16,25,39,.92);border:1px solid var(--line);border-radius:13px;padding:13px;box-shadow:0 10px 32px rgba(0,0,0,.14)}
+.card span,.eyebrow{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.card strong{display:block;font-size:19px;margin-top:5px}.card small{display:block;color:var(--muted);font-size:8px;margin-top:4px;line-height:1.35}
+.section{margin-top:12px}.sectionhead{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:8px}.sectionhead h2{font-size:14px;margin:2px 0 0}.sectionhead span{font-size:8px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(37,52,74,.65)}.row:last-child{border-bottom:0}.row b{font-size:9px}.row em{font-style:normal;font-size:9px;color:var(--muted);text-align:right}
+.progress{height:7px;background:#08101a;border:1px solid var(--line);border-radius:99px;overflow:hidden;margin-top:8px}.progress>i{display:block;height:100%;background:linear-gradient(90deg,#4f8ecf,#62d6a6);width:0}
+.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px}.flow div{border:1px solid var(--line);border-radius:9px;padding:8px;background:var(--card2)}.flow b{font-size:8px;display:block}.flow small{font-size:7px;color:var(--muted)}
+.hyp{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--card2);margin-top:6px}.hyp b{font-size:9px}.hyp span{font-size:8px;color:var(--muted);text-transform:none}.hyp em{font-style:normal;font-size:8px}
+.notice{border-left:3px solid var(--accent)}.danger{border-left-color:var(--bad)}.ok{border-left-color:var(--good)}
+footer{color:var(--muted);font-size:8px;padding-top:16px;text-align:center}
+@media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.three{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+@media(max-width:520px){header,main{padding-left:11px;padding-right:11px}.grid{grid-template-columns:1fr 1fr}.flow{grid-template-columns:repeat(3,1fr)}.top{align-items:flex-start;flex-direction:column}.card strong{font-size:16px}}
+</style>
+</head>
+<body>
+<header><div class="wrap top">
+<div class="brand"><b>UGREEN Trading Control · Cloud</b><span>Read-only Remote Cockpit</span></div>
+<div class="badges"><span class="badge accent" id="mode">CLOUD</span><span class="badge" id="fresh">lädt …</span><span class="badge good">KEINE LIVE-ORDERS</span></div>
+</div></header>
+<main class="wrap">
+<div class="grid">
+<div class="card"><span>Historical Runner</span><strong id="runner">–</strong><small id="runnerMeta">wartet</small></div>
+<div class="card"><span>Strategie</span><strong id="strategy">–</strong><small id="strategyMeta">wartet</small></div>
+<div class="card"><span>Bar-OOS</span><strong id="barN">–</strong><small id="barMeta">wartet</small></div>
+<div class="card"><span>Extension</span><strong id="extPct">–</strong><small id="extMeta">wartet</small></div>
+</div>
+
+<section class="section">
+<div class="sectionhead"><div><span class="eyebrow">STRATEGIEENTWICKLUNG</span><h2>Variant Factory</h2></div><span>Ghost → V12 → V13 → Challenger → Holdout → Paper</span></div>
+<div class="card">
+<div class="flow">
+<div><b>Ghost</b><small>Muster erkennen</small></div><div><b>V12</b><small>Research</small></div><div><b>V13</b><small>independent</small></div><div><b>Freeze</b><small>1 Challenger</small></div><div><b>Holdout</b><small>2014–2017</small></div><div><b>Paper</b><small>nie direkt Live</small></div>
+</div>
+<div id="hyps"></div>
+</div>
+</section>
+
+<section class="section">
+<div class="sectionhead"><div><span class="eyebrow">PERFORMANCE</span><h2>Pipeline & Bottleneck</h2></div><span id="perfTime">–</span></div>
+<div class="grid">
+<div class="card"><span>Kandidaten / min</span><strong id="candpm">–</strong><small>Stage 1</small></div>
+<div class="card"><span>Catalyst / min</span><strong id="catpm">–</strong><small>Stage 2</small></div>
+<div class="card"><span>Intraday / min</span><strong id="intrpm">–</strong><small>Stage 3</small></div>
+<div class="card"><span>Model / min</span><strong id="modelpm">–</strong><small>Stage 4/5</small></div>
+</div>
+<div class="two" style="margin-top:9px">
+<div class="card notice"><span>Aktueller Bottleneck</span><strong id="bottleneck">–</strong><small id="bottleneckMeta">–</small></div>
+<div class="card"><span>Systemprofil</span><strong id="profile">–</strong><small id="systemMeta">–</small></div>
+</div>
+</section>
+
+<section class="section">
+<div class="sectionhead"><div><span class="eyebrow">EVIDENZ</span><h2>Research-Zustand</h2></div><span>V11 bleibt eingefroren</span></div>
+<div class="two">
+<div class="card"><div class="row"><b>Mean Net-R · Development Base</b><em id="baseMean">–</em></div><div class="row"><b>Profit Factor</b><em id="basePf">–</em></div><div class="row"><b>Max Drawdown</b><em id="baseDd">–</em></div><div class="row"><b>Temporal stabil positiv</b><em id="baseStable">–</em></div></div>
+<div class="card"><div class="row"><b>Holdout 2014–2017</b><em id="holdout">–</em></div><div class="row"><b>Frozen V11</b><em id="fingerprint">–</em></div><div class="row"><b>Candidate ready</b><em id="candidateReady">–</em></div><div class="row"><b>Order-Fähigkeit</b><em id="orders">–</em></div></div>
+</div>
+</section>
+
+<section class="section">
+<div class="sectionhead"><div><span class="eyebrow">CLOUD STATUS</span><h2>Datenverbindung</h2></div><span id="cloudVersion">–</span></div>
+<div class="card notice" id="cloudCard"><span>Letzter Snapshot</span><strong id="snapshotTime">Noch keine Daten</strong><small id="snapshotMeta">Der NAS sendet nur ausgehend. Es gibt keinen eingehenden Zugriff auf dein Heimnetz.</small></div>
+</section>
+<footer>Read-only Cloud Cockpit · keine Steuerung · keine Brokerorders · NAS bleibt hinter deinem Heimnetz</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const num=(v,d=2)=>{const n=Number(v);return Number.isFinite(n)?n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d}):'–'};
+const int=v=>{const n=Number(v);return Number.isFinite(n)?Math.round(n).toLocaleString('de-DE'):'–'};
+const pct=(a,b)=>b?100*Number(a||0)/Number(b):0;
+function dsByRole(dp,role){return (dp?.datasets||[]).find(x=>x?.role===role)||null}
+function getHist(s){return s?.endpoints?.historical?.data||{}}
+function render(data){
+  const s=data?.snapshot||{}, cloud=data?.cloud||{}, hist=getHist(s), st=hist?.state||{}, perf=st?.performance||{}, thr=perf?.throughput||{}, eta=perf?.eta||{}, meta=st?.meta_research||st?.prediction_lab?.meta_research||{};
+  const dp=st?.dataset_pipeline||{}, ext=dsByRole(dp,'DEVELOPMENT_EXTENSION')||dp?.active_or_next||{}, hold=dsByRole(dp,'HOLDOUT')||{};
+  const base=meta?.development_eras?.DEVELOPMENT_BASE_2022_2026||meta?.baseline||{};
+  const hyps=Array.isArray(meta?.hypothesis_registry)?meta.hypothesis_registry:[];
+  $('fresh').textContent=cloud.stale?'STALE':'LIVE'; $('fresh').className='badge '+(cloud.stale?'warn':'good');
+  $('runner').textContent=st.version?('v'+st.version):'–'; $('runnerMeta').textContent=hist.reachable===false?'nicht erreichbar':(st.last_error?'Fehler':'erreichbar');
+  $('strategy').textContent='V11 Frozen'; $('strategyMeta').textContent=st.frozen_v11_fingerprint||'–';
+  $('barN').textContent=int(st.audit_eligibility?.bar_oos_research_count); $('barMeta').textContent='Mean '+num(st.audit_eligibility?.bar_oos_mean_net_r,3)+' R';
+  const ep=pct(ext.rows_scanned,ext.rows_total); $('extPct').textContent=num(ep,1)+' %'; $('extMeta').textContent=int(ext.rows_scanned)+' / '+int(ext.rows_total)+' Zeilen';
+  $('candpm').textContent=num(thr.candidates_per_min,1); $('catpm').textContent=num(thr.catalyst_per_min,1); $('intrpm').textContent=num(thr.intraday_per_min,1); $('modelpm').textContent=num(thr.model_per_min,1);
+  $('bottleneck').textContent=eta.bottleneck||'–'; $('bottleneckMeta').textContent=eta.pipeline_seconds?('Pipeline ETA '+Math.round(eta.pipeline_seconds/60)+' min'):'keine ETA';
+  $('profile').textContent=st.effective_profile||st.effective_plan?.name||'–'; $('systemMeta').textContent='Queue '+int(st.candidate_queue)+' · Temp '+num(hist.host?.cpu_temperature?.celsius,1)+' °C';
+  $('baseMean').textContent=num(base.mean_net_r,3)+' R'; $('basePf').textContent=num(base.profit_factor,3); $('baseDd').textContent=num(base.max_drawdown_r,1)+' R'; $('baseStable').textContent=base.temporal_stable_positive?'JA':'NEIN';
+  $('holdout').textContent=(hold.holdout_locked&&Number(hold.rows_scanned||0)===0)?'LOCKED · unberührt':'PRÜFEN';
+  $('fingerprint').textContent=st.frozen_v11_fingerprint==='42d1432ffd59a06a'?'OK · 42d143…':'PRÜFEN';
+  $('candidateReady').textContent=meta.candidate_ready?'JA':'NEIN'; $('orders').textContent=st.can_place_orders===false?'DEAKTIVIERT':'PRÜFEN';
+  const names={H1_STOP_GT_2_5:'H1 · Stop >2,5 %',H2_SIGNAL_1020_PLUS:'H2 · Signal 10:20–10:59',H3_ABS_GAP_10_18:'H3 · Gap 10–18 %',H4_CATALYST_AGE_LE_6H:'H4 · Catalyst ≤6 h',H5_CLV_GE_085:'H5 · CLV ≥0,85'};
+  $('hyps').innerHTML=hyps.map(h=>{const e=h.development_extension||{},n=Number(e.n||0),ready=n>=30;return '<div class="hyp"><div><b>'+ (names[h.id]||h.definition||h.id) +'</b><span>Extension n='+int(n)+' · Net-R '+(Number(e.mean_net_r)>=0?'+':'')+num(e.mean_net_r,3)+' · PF '+num(e.profit_factor,3)+'</span></div><em>V12</em><em style="color:'+(ready?'var(--good)':'var(--warn)')+'">'+(ready?'PRÜFBAR':n?'PRELIMINARY':'WARTET')+'</em></div>'}).join('')||'<div class="hyp"><div><b>H1–H5</b><span>Warten auf Research-Daten</span></div><em>V12</em><em>WARTET</em></div>';
+  $('snapshotTime').textContent=cloud.source_generated_at?new Date(cloud.source_generated_at).toLocaleString('de-DE'):'Noch keine Daten';
+  $('snapshotMeta').textContent=(cloud.age_seconds!=null?('Alter '+Math.round(cloud.age_seconds/60)+' min · '):'')+'Read-only · NAS nur ausgehend verbunden';
+  $('cloudVersion').textContent=cloud.cloud_version||'–';
+  $('cloudCard').className='card notice '+(cloud.stale?'danger':'ok');
+}
+async function load(){
+  try{const r=await fetch('/api/snapshot',{cache:'no-store'});render(await r.json())}
+  catch(e){$('fresh').textContent='OFFLINE';$('fresh').className='badge bad'}
+}
+load();setInterval(load,15000);
+</script>
+</body></html>
