@@ -23,6 +23,13 @@ main{padding:14px 16px 44px}.grid{display:grid;grid-template-columns:repeat(4,1f
 .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(37,52,74,.65)}.row:last-child{border-bottom:0}.row b{font-size:9px}.row em{font-style:normal;font-size:9px;color:var(--muted);text-align:right}
 .progress{height:7px;background:#08101a;border:1px solid var(--line);border-radius:99px;overflow:hidden;margin-top:8px}.progress>i{display:block;height:100%;background:linear-gradient(90deg,#4f8ecf,#62d6a6);width:0}
 .flow{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px}.flow div{border:1px solid var(--line);border-radius:9px;padding:8px;background:var(--card2)}.flow b{font-size:8px;display:block}.flow small{font-size:7px;color:var(--muted)}
+.dev-roadmap{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.dev-step{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card2);min-height:76px}
+.dev-step b{font-size:9px;display:block;margin-bottom:5px}.dev-step strong{font-size:11px;display:block}.dev-step small{font-size:7px;color:var(--muted);text-transform:none;line-height:1.35}
+.dev-step.current{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.dev-step.done{border-color:rgba(98,214,166,.45)}.dev-step.locked{opacity:.7}
+@media(max-width:700px){.dev-roadmap{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){.dev-roadmap{grid-template-columns:1fr}}
 .hyp{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--card2);margin-top:6px}.hyp b{font-size:9px}.hyp span{font-size:8px;color:var(--muted);text-transform:none}.hyp em{font-style:normal;font-size:8px}
 .notice{border-left:3px solid var(--accent)}.danger{border-left-color:var(--bad)}.ok{border-left-color:var(--good)}
 footer{color:var(--muted);font-size:8px;padding-top:16px;text-align:center}
@@ -77,6 +84,7 @@ body.detail-mode .compact-only{display:none}
   <span class="badge accent" id="mode">CLOUD</span>
   <span class="badge" id="fresh">lädt …</span>
   <span class="badge good">READ ONLY</span>
+  <button class="btn" id="developmentJump" type="button">Entwicklungsstand</button>
   <button class="btn" id="adaptiveJump" type="button">Adaptive Vergleich</button>
   <button class="btn" id="detailToggle" type="button">Technische Details</button>
 </div>
@@ -145,6 +153,39 @@ body.detail-mode .compact-only{display:none}
         <div class="row"><b>Datenqualität</b><em id="euForwardQuality">–</em></div>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="section" id="developmentRoadmapSection">
+  <div class="sectionhead">
+    <div><span class="eyebrow">ENTWICKLUNGSPFAD</span><h2>Vom Research zum automatisierten Trading</h2></div>
+    <span id="devCurrentPhase">Phase 1 · Forward Shadow</span>
+  </div>
+  <div class="dev-roadmap">
+    <div class="dev-step current" id="devStep1">
+      <b>1 · Forward Shadow</b>
+      <strong id="devStage1">AUFBAU</strong>
+      <small>EU + US prospektiv simulieren · keine Orders</small>
+    </div>
+    <div class="dev-step locked" id="devStep2">
+      <b>2 · Broker Paper</b>
+      <strong id="devStage2">GESPERRT</strong>
+      <small>Orderlogik erst nach sauberer Forward-Evidenz</small>
+    </div>
+    <div class="dev-step locked" id="devStep3">
+      <b>3 · Live-Readiness</b>
+      <strong id="devStage3">SPÄTER</strong>
+      <small>Holdout, Forward, Risiko- und Execution-Gates</small>
+    </div>
+    <div class="dev-step locked" id="devStep4">
+      <b>4 · Auto-Live</b>
+      <strong id="devStage4">DEAKTIVIERT</strong>
+      <small>Nur nach bewusster Freigabe · Kill-Switch + Limits</small>
+    </div>
+  </div>
+  <div class="card notice" style="margin-top:8px">
+    <div class="row"><b>Nächster Entwicklungs-Gate</b><em id="devNextGate">Forward Shadow EU + US stabilisieren</em></div>
+    <div class="row"><b>Order-Sicherheit</b><em id="devOrderSafety">Keine Orders · can_place_orders=false</em></div>
   </div>
 </section>
 
@@ -402,6 +443,38 @@ function render(data){
   const fwdUpdated=forward.updated_at||usForward.updated_at||euForward.updated_at;
   $('forwardUpdated').textContent=fwdUpdated?('Stand '+new Date(fwdUpdated).toLocaleString('de-DE')+' · keine Orders'):'keine Orders · wartet auf Forward-State';
 
+  const development=firstObj(
+    st?.development_status,
+    meta?.development_status,
+    researchData?.development_status,
+    s?.development_status
+  );
+  const usOperational=/running|active|ready|open/i.test(usStatus)&&!/blocked|failed|error/i.test(usStatus);
+  const euOperational=/running|active|ready|open/i.test(euStatus)&&!/blocked|failed|error/i.test(euStatus);
+  const forwardOperational=usOperational&&euOperational;
+  const forwardStarted=(usStatus!=='WARTET'||euStatus!=='WARTET');
+  const paperReady=Boolean(development.paper_ready||development.paper_candidate||development.phase2_ready);
+  const liveReady=Boolean(development.live_readiness_passed||development.phase3_ready);
+  const liveEnabled=st.can_place_orders===true&&Boolean(development.live_enabled);
+
+  function setDevStep(n,state,label,mode){
+    const box=$('devStep'+n),val=$('devStage'+n);
+    if(!box||!val)return;
+    box.classList.remove('current','done','locked');
+    if(mode)box.classList.add(mode);
+    val.textContent=label;
+    val.style.color=state==='good'?'var(--good)':state==='bad'?'var(--bad)':state==='accent'?'var(--accent)':'var(--warn)';
+  }
+  setDevStep(1,forwardOperational?'good':'warn',forwardOperational?'AKTIV':forwardStarted?'AUFBAU':'WARTET',paperReady?'done':'current');
+  setDevStep(2,paperReady?'good':'warn',paperReady?'BEREIT':'GESPERRT',paperReady&&!liveReady?'current':paperReady?'done':'locked');
+  setDevStep(3,liveReady?'good':'warn',liveReady?'BESTANDEN':'SPÄTER',liveReady&&!liveEnabled?'current':liveReady?'done':'locked');
+  setDevStep(4,liveEnabled?'good':'warn',liveEnabled?'AKTIV':'DEAKTIVIERT',liveEnabled?'current':'locked');
+  const inferredPhase=liveEnabled?'4 · Auto-Live':liveReady?'3 · Live-Readiness':paperReady?'2 · Broker Paper':'1 · Forward Shadow';
+  $('devCurrentPhase').textContent=development.current_phase||inferredPhase;
+  $('devNextGate').textContent=development.next_gate||(!forwardOperational?'Forward Shadow EU + US stabilisieren':!paperReady?'Prospektive Evidenz sammeln und Paper-Gate erfüllen':!liveReady?'Papertrading + Live-Readiness-Gates':'Bewusste Live-Freigabe erforderlich');
+  $('devOrderSafety').textContent=st.can_place_orders===false?'Keine Orders · can_place_orders=false':liveEnabled?'Live-Funktion freigegeben':'Orderstatus prüfen';
+  $('devOrderSafety').style.color=st.can_place_orders===false?'var(--good)':liveEnabled?'var(--warn)':'var(--bad)';
+
   const masterReport=firstObj(
     st?.master_reporting,
     meta?.master_reporting,
@@ -491,6 +564,8 @@ function render(data){
   $('cloudSummary').textContent=(cloud.stale?'STALE':'LIVE')+' · '+(ageMin==null?'kein Alter':ageMin+' min');
   $('cloudCard').className='card notice '+(cloud.stale?'danger':'ok');
 }
+const developmentJump=$('developmentJump');
+developmentJump?.addEventListener('click',()=>document.getElementById('developmentRoadmapSection')?.scrollIntoView({behavior:'smooth',block:'start'}));
 const adaptiveJump=$('adaptiveJump');
 adaptiveJump?.addEventListener('click',()=>document.getElementById('adaptiveLabSection')?.scrollIntoView({behavior:'smooth',block:'start'}));
 const detailToggle=$('detailToggle');
