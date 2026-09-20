@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b111b">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trading Control">
 <title>UGREEN Trading Control Cloud</title>
 <style>
 :root{--bg:#08101a;--card:#101927;--card2:#0c1420;--line:#25344a;--text:#eef4fb;--muted:#8ea0b6;--good:#62d6a6;--warn:#f4c66b;--bad:#ff7f86;--accent:#76b9ff}
@@ -112,5 +117,8 @@ async function load(){
   catch(e){$('fresh').textContent='OFFLINE';$('fresh').className='badge bad'}
 }
 load();setInterval(load,15000);
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}
 </script>
 </body></html>
