@@ -71,6 +71,8 @@ export default {
         version: APP_VERSION,
         snapshot_present: !!snapshot,
         kv_bound: !!env.SNAPSHOT_KV,
+        cloud_password_configured: !!env.CLOUD_PASSWORD,
+        ingest_token_configured: !!env.INGEST_TOKEN,
         ...cloudMeta(snapshot, env),
       });
     }
