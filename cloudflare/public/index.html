@@ -26,6 +26,22 @@ main{padding:14px 16px 44px}.grid{display:grid;grid-template-columns:repeat(4,1f
 .hyp{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--card2);margin-top:6px}.hyp b{font-size:9px}.hyp span{font-size:8px;color:var(--muted);text-transform:none}.hyp em{font-style:normal;font-size:8px}
 .notice{border-left:3px solid var(--accent)}.danger{border-left-color:var(--bad)}.ok{border-left-color:var(--good)}
 footer{color:var(--muted);font-size:8px;padding-top:16px;text-align:center}
+.toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.btn{appearance:none;border:1px solid var(--line);background:#0d1723;color:var(--text);border-radius:999px;padding:6px 10px;font-size:9px;cursor:pointer}
+.btn:hover{border-color:#456486}.hero{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:9px}
+.hero .primary strong{font-size:22px}.hero .primary{border-left:3px solid var(--accent)}
+.keyline{display:flex;justify-content:space-between;gap:10px;align-items:center}.keyline b{font-size:10px}.keyline span{font-size:8px;color:var(--muted);text-transform:none}
+details.panel{margin-top:10px;border:1px solid var(--line);border-radius:13px;background:rgba(16,25,39,.72);overflow:hidden}
+details.panel>summary{list-style:none;cursor:pointer;padding:12px 13px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary b{font-size:10px}details.panel>summary span{font-size:8px;color:var(--muted);text-align:right}
+details.panel[open]>summary{border-bottom:1px solid var(--line)}
+details.panel>.inside{padding:10px 12px 12px}
+.compact-only{display:block}.detail-only{display:none}
+body.detail-mode .detail-only{display:block}
+body.detail-mode .compact-only{display:none}
+@media(max-width:850px){.hero{grid-template-columns:1fr 1fr}.hero .primary{grid-column:1/-1}}
+@media(max-width:520px){.hero{grid-template-columns:1fr 1fr}.hero .primary{grid-column:1/-1}.toolbar{width:100%;justify-content:space-between}}
 @media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.three{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
 @media(max-width:520px){header,main{padding-left:11px;padding-right:11px}.grid{grid-template-columns:1fr 1fr}.flow{grid-template-columns:repeat(3,1fr)}.top{align-items:flex-start;flex-direction:column}.card strong{font-size:16px}}
 </style>
@@ -33,52 +49,90 @@ footer{color:var(--muted);font-size:8px;padding-top:16px;text-align:center}
 <body>
 <header><div class="wrap top">
 <div class="brand"><b>UGREEN Trading Control · Cloud</b><span>Read-only Remote Cockpit</span></div>
-<div class="badges"><span class="badge accent" id="mode">CLOUD</span><span class="badge" id="fresh">lädt …</span><span class="badge good">KEINE LIVE-ORDERS</span></div>
+<div class="toolbar">
+  <span class="badge accent" id="mode">CLOUD</span>
+  <span class="badge" id="fresh">lädt …</span>
+  <span class="badge good">READ ONLY</span>
+  <button class="btn" id="detailToggle" type="button">Details</button>
+</div>
 </div></header>
 <main class="wrap">
-<div class="grid">
-<div class="card"><span>Historical Runner</span><strong id="runner">–</strong><small id="runnerMeta">wartet</small></div>
-<div class="card"><span>Strategie</span><strong id="strategy">–</strong><small id="strategyMeta">wartet</small></div>
-<div class="card"><span>Bar-OOS</span><strong id="barN">–</strong><small id="barMeta">wartet</small></div>
-<div class="card"><span>Extension</span><strong id="extPct">–</strong><small id="extMeta">wartet</small></div>
+<div class="hero">
+  <div class="card primary">
+    <span>Systemstatus</span>
+    <strong id="systemHeadline">lädt …</strong>
+    <small id="systemSubline">Aktueller NAS-/Cloud-Zustand</small>
+  </div>
+  <div class="card"><span>Extension</span><strong id="extPct">–</strong><small id="extMeta">wartet</small></div>
+  <div class="card"><span>Strategie-Gate</span><strong id="gateState">–</strong><small id="gateMeta">wartet</small></div>
+  <div class="card"><span>Cloud-Sync</span><strong id="cloudAge">–</strong><small id="cloudAgeMeta">wartet</small></div>
 </div>
 
 <section class="section">
-<div class="sectionhead"><div><span class="eyebrow">STRATEGIEENTWICKLUNG</span><h2>Variant Factory</h2></div><span>Ghost → V12 → V13 → Challenger → Holdout → Paper</span></div>
-<div class="card">
-<div class="flow">
-<div><b>Ghost</b><small>Muster erkennen</small></div><div><b>V12</b><small>Research</small></div><div><b>V13</b><small>independent</small></div><div><b>Freeze</b><small>1 Challenger</small></div><div><b>Holdout</b><small>2014–2017</small></div><div><b>Paper</b><small>nie direkt Live</small></div>
-</div>
-<div id="hyps"></div>
-</div>
+  <div class="sectionhead"><div><span class="eyebrow">WICHTIG</span><h2>Was gerade zählt</h2></div><span>kompakte Ansicht</span></div>
+  <div class="two">
+    <div class="card notice"><span>Aktueller Bottleneck</span><strong id="bottleneck">–</strong><small id="bottleneckMeta">–</small></div>
+    <div class="card"><span>Nächste Strategieentscheidung</span><strong id="nextAction">–</strong><small id="nextActionMeta">–</small></div>
+  </div>
 </section>
 
-<section class="section">
-<div class="sectionhead"><div><span class="eyebrow">PERFORMANCE</span><h2>Pipeline & Bottleneck</h2></div><span id="perfTime">–</span></div>
-<div class="grid">
-<div class="card"><span>Kandidaten / min</span><strong id="candpm">–</strong><small>Stage 1</small></div>
-<div class="card"><span>Catalyst / min</span><strong id="catpm">–</strong><small>Stage 2</small></div>
-<div class="card"><span>Intraday / min</span><strong id="intrpm">–</strong><small>Stage 3</small></div>
-<div class="card"><span>Model / min</span><strong id="modelpm">–</strong><small>Stage 4/5</small></div>
-</div>
-<div class="two" style="margin-top:9px">
-<div class="card notice"><span>Aktueller Bottleneck</span><strong id="bottleneck">–</strong><small id="bottleneckMeta">–</small></div>
-<div class="card"><span>Systemprofil</span><strong id="profile">–</strong><small id="systemMeta">–</small></div>
-</div>
-</section>
+<details class="panel" id="strategyPanel">
+  <summary><b>Strategieentwicklung</b><span id="strategySummary">H1–H5 · Research only</span></summary>
+  <div class="inside">
+    <div class="flow">
+      <div><b>Ghost</b><small>Muster</small></div><div><b>V12</b><small>Research</small></div><div><b>V13</b><small>independent</small></div><div><b>Freeze</b><small>1 Challenger</small></div><div><b>Holdout</b><small>2014–2017</small></div><div><b>Paper</b><small>nie direkt Live</small></div>
+    </div>
+    <div id="hyps"></div>
+  </div>
+</details>
 
-<section class="section">
-<div class="sectionhead"><div><span class="eyebrow">EVIDENZ</span><h2>Research-Zustand</h2></div><span>V11 bleibt eingefroren</span></div>
-<div class="two">
-<div class="card"><div class="row"><b>Mean Net-R · Development Base</b><em id="baseMean">–</em></div><div class="row"><b>Profit Factor</b><em id="basePf">–</em></div><div class="row"><b>Max Drawdown</b><em id="baseDd">–</em></div><div class="row"><b>Temporal stabil positiv</b><em id="baseStable">–</em></div></div>
-<div class="card"><div class="row"><b>Holdout 2014–2017</b><em id="holdout">–</em></div><div class="row"><b>Frozen V11</b><em id="fingerprint">–</em></div><div class="row"><b>Candidate ready</b><em id="candidateReady">–</em></div><div class="row"><b>Order-Fähigkeit</b><em id="orders">–</em></div></div>
-</div>
-</section>
+<details class="panel" id="performancePanel">
+  <summary><b>Performance & Pipeline</b><span id="performanceSummary">Durchsatzdetails</span></summary>
+  <div class="inside">
+    <div class="grid">
+      <div class="card"><span>Kandidaten / min</span><strong id="candpm">–</strong><small>Stage 1</small></div>
+      <div class="card"><span>Catalyst / min</span><strong id="catpm">–</strong><small>Stage 2</small></div>
+      <div class="card"><span>Intraday / min</span><strong id="intrpm">–</strong><small>Stage 3</small></div>
+      <div class="card"><span>Model / min</span><strong id="modelpm">–</strong><small>Stage 4/5</small></div>
+    </div>
+    <div class="two" style="margin-top:9px">
+      <div class="card"><span>Historical Runner</span><strong id="runner">–</strong><small id="runnerMeta">wartet</small></div>
+      <div class="card"><span>Systemprofil</span><strong id="profile">–</strong><small id="systemMeta">–</small></div>
+    </div>
+  </div>
+</details>
 
-<section class="section">
-<div class="sectionhead"><div><span class="eyebrow">CLOUD STATUS</span><h2>Datenverbindung</h2></div><span id="cloudVersion">–</span></div>
-<div class="card notice" id="cloudCard"><span>Letzter Snapshot</span><strong id="snapshotTime">Noch keine Daten</strong><small id="snapshotMeta">Der NAS sendet nur ausgehend. Es gibt keinen eingehenden Zugriff auf dein Heimnetz.</small></div>
-</section>
+<details class="panel" id="researchPanel">
+  <summary><b>Research & Evidenz</b><span id="researchSummary">nur bei Bedarf öffnen</span></summary>
+  <div class="inside">
+    <div class="two">
+      <div class="card">
+        <div class="row"><b>Bar-OOS n</b><em id="barN">–</em></div>
+        <div class="row"><b>Bar-OOS Mean</b><em id="barMeta">–</em></div>
+        <div class="row"><b>Mean Net-R · Development</b><em id="baseMean">–</em></div>
+        <div class="row"><b>Profit Factor</b><em id="basePf">–</em></div>
+        <div class="row"><b>Max Drawdown</b><em id="baseDd">–</em></div>
+        <div class="row"><b>Temporal stabil positiv</b><em id="baseStable">–</em></div>
+      </div>
+      <div class="card">
+        <div class="row"><b>Holdout 2014–2017</b><em id="holdout">–</em></div>
+        <div class="row"><b>Frozen V11</b><em id="fingerprint">–</em></div>
+        <div class="row"><b>Candidate ready</b><em id="candidateReady">–</em></div>
+        <div class="row"><b>Order-Fähigkeit</b><em id="orders">–</em></div>
+      </div>
+    </div>
+  </div>
+</details>
+
+<details class="panel" id="cloudPanel">
+  <summary><b>Cloud & technische Details</b><span id="cloudSummary">Verbindung</span></summary>
+  <div class="inside">
+    <div class="card notice" id="cloudCard"><span>Letzter Snapshot</span><strong id="snapshotTime">Noch keine Daten</strong><small id="snapshotMeta">Der NAS sendet nur ausgehend.</small></div>
+    <div class="row"><b>Cloud-Version</b><em id="cloudVersion">–</em></div>
+    <div class="row"><b>Strategie</b><em id="strategy">V11 Frozen</em></div>
+    <div class="row"><b>Fingerprint</b><em id="strategyMeta">–</em></div>
+  </div>
+</details>
 <footer>Read-only Cloud Cockpit · keine Steuerung · keine Brokerorders · NAS bleibt hinter deinem Heimnetz</footer>
 </main>
 <script>
@@ -94,24 +148,61 @@ function render(data){
   const base=meta?.development_eras?.DEVELOPMENT_BASE_2022_2026||meta?.baseline||{};
   const hyps=Array.isArray(meta?.hypothesis_registry)?meta.hypothesis_registry:[];
   $('fresh').textContent=cloud.stale?'STALE':'LIVE'; $('fresh').className='badge '+(cloud.stale?'warn':'good');
+  const runnerOk=hist.reachable!==false&&!st.last_error;
+  $('systemHeadline').textContent=cloud.stale?'DATEN VERALTET':runnerOk?'SYSTEM OK':'PRÜFEN';
+  $('systemHeadline').style.color=cloud.stale?'var(--warn)':runnerOk?'var(--good)':'var(--bad)';
+  $('systemSubline').textContent=cloud.stale?'Letzter Cloud-Snapshot ist älter als vorgesehen':runnerOk?'NAS, Runner und Cloud liefern Daten':'Runner-/Datenstatus prüfen';
   $('runner').textContent=st.version?('v'+st.version):'–'; $('runnerMeta').textContent=hist.reachable===false?'nicht erreichbar':(st.last_error?'Fehler':'erreichbar');
   $('strategy').textContent='V11 Frozen'; $('strategyMeta').textContent=st.frozen_v11_fingerprint||'–';
   $('barN').textContent=int(st.audit_eligibility?.bar_oos_research_count); $('barMeta').textContent='Mean '+num(st.audit_eligibility?.bar_oos_mean_net_r,3)+' R';
   const ep=pct(ext.rows_scanned,ext.rows_total); $('extPct').textContent=num(ep,1)+' %'; $('extMeta').textContent=int(ext.rows_scanned)+' / '+int(ext.rows_total)+' Zeilen';
+  $('gateState').textContent=meta.candidate_ready?'CHALLENGER':'RESEARCH';
+  $('gateState').style.color=meta.candidate_ready?'var(--good)':'var(--warn)';
+  const readyCount=hyps.filter(h=>Number(h?.development_extension?.n||0)>=30).length;
+  $('gateMeta').textContent=readyCount+'/'+(hyps.length||5)+' Hypothesen mit n≥30';
+  const ageMin=cloud.age_seconds==null?null:Math.round(cloud.age_seconds/60);
+  $('cloudAge').textContent=ageMin==null?'–':ageMin+' min';
+  $('cloudAge').style.color=cloud.stale?'var(--warn)':'var(--good)';
+  $('cloudAgeMeta').textContent=cloud.stale?'STALE':'letzter Snapshot';
   $('candpm').textContent=num(thr.candidates_per_min,1); $('catpm').textContent=num(thr.catalyst_per_min,1); $('intrpm').textContent=num(thr.intraday_per_min,1); $('modelpm').textContent=num(thr.model_per_min,1);
   $('bottleneck').textContent=eta.bottleneck||'–'; $('bottleneckMeta').textContent=eta.pipeline_seconds?('Pipeline ETA '+Math.round(eta.pipeline_seconds/60)+' min'):'keine ETA';
+  $('performanceSummary').textContent=(eta.bottleneck||'kein Bottleneck')+' · Model '+num(thr.model_per_min,1)+'/min';
   $('profile').textContent=st.effective_profile||st.effective_plan?.name||'–'; $('systemMeta').textContent='Queue '+int(st.candidate_queue)+' · Temp '+num(hist.host?.cpu_temperature?.celsius,1)+' °C';
   $('baseMean').textContent=num(base.mean_net_r,3)+' R'; $('basePf').textContent=num(base.profit_factor,3); $('baseDd').textContent=num(base.max_drawdown_r,1)+' R'; $('baseStable').textContent=base.temporal_stable_positive?'JA':'NEIN';
   $('holdout').textContent=(hold.holdout_locked&&Number(hold.rows_scanned||0)===0)?'LOCKED · unberührt':'PRÜFEN';
   $('fingerprint').textContent=st.frozen_v11_fingerprint==='42d1432ffd59a06a'?'OK · 42d143…':'PRÜFEN';
   $('candidateReady').textContent=meta.candidate_ready?'JA':'NEIN'; $('orders').textContent=st.can_place_orders===false?'DEAKTIVIERT':'PRÜFEN';
+  $('researchSummary').textContent='Net-R '+num(base.mean_net_r,3)+' R · PF '+num(base.profit_factor,2);
+  $('strategySummary').textContent='H1–H5 · '+readyCount+'/'+(hyps.length||5)+' prüfbar · V11 unverändert';
+  if(meta.candidate_ready){
+    $('nextAction').textContent='Challenger-Gate prüfen';
+    $('nextActionMeta').textContent='Genau eine Spezifikation einfrieren, bevor der Holdout geöffnet wird.';
+  }else if(readyCount>0){
+    $('nextAction').textContent='Replikation vervollständigen';
+    $('nextActionMeta').textContent=readyCount+'/'+(hyps.length||5)+' Hypothesen haben n≥30.';
+  }else{
+    $('nextAction').textContent='Weitere Extension-Outcomes';
+    $('nextActionMeta').textContent='Noch keine Hypothese hat die Mindeststichprobe n≥30 erreicht.';
+  }
   const names={H1_STOP_GT_2_5:'H1 · Stop >2,5 %',H2_SIGNAL_1020_PLUS:'H2 · Signal 10:20–10:59',H3_ABS_GAP_10_18:'H3 · Gap 10–18 %',H4_CATALYST_AGE_LE_6H:'H4 · Catalyst ≤6 h',H5_CLV_GE_085:'H5 · CLV ≥0,85'};
   $('hyps').innerHTML=hyps.map(h=>{const e=h.development_extension||{},n=Number(e.n||0),ready=n>=30;return '<div class="hyp"><div><b>'+ (names[h.id]||h.definition||h.id) +'</b><span>Extension n='+int(n)+' · Net-R '+(Number(e.mean_net_r)>=0?'+':'')+num(e.mean_net_r,3)+' · PF '+num(e.profit_factor,3)+'</span></div><em>V12</em><em style="color:'+(ready?'var(--good)':'var(--warn)')+'">'+(ready?'PRÜFBAR':n?'PRELIMINARY':'WARTET')+'</em></div>'}).join('')||'<div class="hyp"><div><b>H1–H5</b><span>Warten auf Research-Daten</span></div><em>V12</em><em>WARTET</em></div>';
   $('snapshotTime').textContent=cloud.source_generated_at?new Date(cloud.source_generated_at).toLocaleString('de-DE'):'Noch keine Daten';
   $('snapshotMeta').textContent=(cloud.age_seconds!=null?('Alter '+Math.round(cloud.age_seconds/60)+' min · '):'')+'Read-only · NAS nur ausgehend verbunden';
   $('cloudVersion').textContent=cloud.cloud_version||'–';
+  $('cloudSummary').textContent=(cloud.stale?'STALE':'LIVE')+' · '+(ageMin==null?'kein Alter':ageMin+' min');
   $('cloudCard').className='card notice '+(cloud.stale?'danger':'ok');
 }
+const detailToggle=$('detailToggle');
+const panels=[...document.querySelectorAll('details.panel')];
+function setDetailMode(on){
+  document.body.classList.toggle('detail-mode',on);
+  panels.forEach(p=>p.open=on);
+  detailToggle.textContent=on?'Kompakt':'Details';
+  localStorage.setItem('tc_detail_mode',on?'1':'0');
+}
+detailToggle.addEventListener('click',()=>setDetailMode(!document.body.classList.contains('detail-mode')));
+setDetailMode(localStorage.getItem('tc_detail_mode')==='1');
+
 async function load(){
   try{const r=await fetch('/api/snapshot',{cache:'no-store'});render(await r.json())}
   catch(e){$('fresh').textContent='OFFLINE';$('fresh').className='badge bad'}
