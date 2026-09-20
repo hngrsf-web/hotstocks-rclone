@@ -59,7 +59,7 @@ body.detail-mode .compact-only{display:none}
 .compare-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:7px;align-items:center;padding:9px 8px;border-top:1px solid rgba(37,52,74,.65);font-size:9px}
 .compare-row b{font-size:9px}.compare-row span{text-transform:none;font-size:9px;color:var(--text)}
 .delta-good{color:var(--good)!important}.delta-bad{color:var(--bad)!important}.delta-warn{color:var(--warn)!important}
-.adaptive-status{display:grid;grid-template-columns:2fr 1fr 1fr;gap:9px;margin-top:9px}
+.adaptive-status{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:9px;margin-top:9px}
 .adaptive-note{margin-top:8px;padding:9px 10px;border-radius:9px;background:var(--card2);border:1px solid var(--line);font-size:8px;color:var(--muted);line-height:1.45}
 @media(max-width:650px){.compare-head,.compare-row{grid-template-columns:1.2fr 1fr 1fr}.compare-head>:nth-child(4),.compare-row>:nth-child(4){display:none}.adaptive-status{grid-template-columns:1fr 1fr}.adaptive-status>:first-child{grid-column:1/-1}}
 </style>
@@ -168,6 +168,7 @@ body.detail-mode .compact-only{display:none}
     <div class="adaptive-status">
       <div><span>Adaptive Modell</span><strong id="adaptiveModel">WARTET</strong><small id="adaptiveModelMeta">Research / Shadow · keine Live-Orders</small></div>
       <div><span>Status</span><strong id="adaptiveState">–</strong><small id="adaptiveStateMeta">–</small></div>
+      <div><span>Runner-Version</span><strong id="adaptiveVersion">–</strong><small id="adaptiveVersionMeta">Research Generation –</small></div>
       <div><span>Walk-Forward n</span><strong id="adaptiveN">–</strong><small id="adaptiveNMeta">unabhängige Outcomes</small></div>
     </div>
     <div class="compare-head"><div>Metrik</div><div>V11</div><div>Adaptive</div><div>Δ Adaptive − V11</div></div>
@@ -316,6 +317,10 @@ function render(data){
   $('adaptiveModelMeta').textContent=(adaptive.feature_version?('Features '+adaptive.feature_version+' · '):'')+'Research / Shadow · keine Live-Orders';
   $('adaptiveState').textContent=adaptive.state||adaptive.lifecycle_state||(adaptiveHasData?'RESEARCH':'–');
   $('adaptiveStateMeta').textContent=adaptive.drift_status?('Drift '+adaptive.drift_status):(adaptiveHasData?'Walk-Forward / Shadow':'Noch keine Auswertung');
+  const adaptiveVersion=adaptive.software_version||adaptive.runner_version||adaptive.version||'–';
+  $('adaptiveVersion').textContent=adaptiveVersion==='–'?'–':('v'+String(adaptiveVersion).replace(/^v/i,''));
+  $('adaptiveVersion').style.color=adaptiveVersion==='–'?'var(--muted)':'var(--accent)';
+  $('adaptiveVersionMeta').textContent='Research Generation '+(adaptive.research_generation||adaptive.generation||'–');
   $('adaptiveN').textContent=int(metric(adaRef,'n','sample_n','walk_forward_n'));
   $('adaptiveNMeta').textContent=adaptive.validation_window||adaptive.test_window||'unabhängige Outcomes';
   $('adaptiveUpdated').textContent=adaptive.updated_at?('Stand '+new Date(adaptive.updated_at).toLocaleString('de-DE')):(adaptiveHasData?'Adaptive Daten vorhanden':'wartet auf erste Modelldaten');
