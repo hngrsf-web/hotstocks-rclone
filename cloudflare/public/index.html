@@ -42,6 +42,17 @@ body.detail-mode .detail-only{display:block}
 body.detail-mode .compact-only{display:none}
 @media(max-width:850px){.hero{grid-template-columns:1fr 1fr}.hero .primary{grid-column:1/-1}}
 @media(max-width:520px){.hero{grid-template-columns:1fr 1fr}.hero .primary{grid-column:1/-1}.toolbar{width:100%;justify-content:space-between}}
+.management{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 12px}
+.mgmt{display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:center;background:rgba(16,25,39,.92);border:1px solid var(--line);border-radius:12px;padding:10px 11px;min-width:0}
+.mgmt-dot{width:13px;height:13px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 4px rgba(142,160,182,.08)}
+.mgmt.good .mgmt-dot{background:var(--good);box-shadow:0 0 0 4px rgba(98,214,166,.10)}
+.mgmt.warn .mgmt-dot{background:var(--warn);box-shadow:0 0 0 4px rgba(244,198,107,.10)}
+.mgmt.bad .mgmt-dot{background:var(--bad);box-shadow:0 0 0 4px rgba(255,127,134,.10)}
+.mgmt b{display:block;font-size:9px;letter-spacing:.04em}.mgmt span{display:block;margin-top:2px;color:var(--muted);font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:none}
+.mgmt-detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.mgmt-detail-grid .card{padding:10px}.mgmt-detail-grid strong{font-size:12px}
+@media(max-width:850px){.management,.mgmt-detail-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.management{grid-template-columns:1fr 1fr}.mgmt{padding:9px}.mgmt-detail-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.three{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
 @media(max-width:520px){header,main{padding-left:11px;padding-right:11px}.grid{grid-template-columns:1fr 1fr}.flow{grid-template-columns:repeat(3,1fr)}.top{align-items:flex-start;flex-direction:column}.card strong{font-size:16px}}
 </style>
@@ -57,6 +68,22 @@ body.detail-mode .compact-only{display:none}
 </div>
 </div></header>
 <main class="wrap">
+<section class="management" aria-label="Management-Status">
+  <div class="mgmt" id="mgmtSystem"><i class="mgmt-dot"></i><div><b>SYSTEM</b><span id="mgmtSystemText">lädt …</span></div></div>
+  <div class="mgmt" id="mgmtData"><i class="mgmt-dot"></i><div><b>DATEN</b><span id="mgmtDataText">lädt …</span></div></div>
+  <div class="mgmt" id="mgmtStrategy"><i class="mgmt-dot"></i><div><b>STRATEGIE</b><span id="mgmtStrategyText">lädt …</span></div></div>
+  <div class="mgmt" id="mgmtEvidence"><i class="mgmt-dot"></i><div><b>EVIDENZ</b><span id="mgmtEvidenceText">lädt …</span></div></div>
+</section>
+
+<section class="detail-only">
+  <div class="mgmt-detail-grid">
+    <div class="card"><span>System</span><strong id="mgmtSystemDetail">–</strong><small id="mgmtSystemDetailMeta">–</small></div>
+    <div class="card"><span>Daten</span><strong id="mgmtDataDetail">–</strong><small id="mgmtDataDetailMeta">–</small></div>
+    <div class="card"><span>Strategie</span><strong id="mgmtStrategyDetail">–</strong><small id="mgmtStrategyDetailMeta">–</small></div>
+    <div class="card"><span>Evidenz</span><strong id="mgmtEvidenceDetail">–</strong><small id="mgmtEvidenceDetailMeta">–</small></div>
+  </div>
+</section>
+
 <div class="hero">
   <div class="card primary">
     <span>Systemstatus</span>
@@ -142,6 +169,14 @@ const int=v=>{const n=Number(v);return Number.isFinite(n)?Math.round(n).toLocale
 const pct=(a,b)=>b?100*Number(a||0)/Number(b):0;
 function dsByRole(dp,role){return (dp?.datasets||[]).find(x=>x?.role===role)||null}
 function getHist(s){return s?.endpoints?.historical?.data||{}}
+function setMgmt(id,state,text){
+  const el=$(id);
+  if(!el) return;
+  el.classList.remove('good','warn','bad');
+  el.classList.add(state);
+  const target=$(id+'Text');
+  if(target) target.textContent=text;
+}
 function render(data){
   const s=data?.snapshot||{}, cloud=data?.cloud||{}, hist=getHist(s), st=hist?.state||{}, perf=st?.performance||{}, thr=perf?.throughput||{}, eta=perf?.eta||{}, meta=st?.meta_research||st?.prediction_lab?.meta_research||{};
   const dp=st?.dataset_pipeline||{}, ext=dsByRole(dp,'DEVELOPMENT_EXTENSION')||dp?.active_or_next||{}, hold=dsByRole(dp,'HOLDOUT')||{};
@@ -152,6 +187,36 @@ function render(data){
   $('systemHeadline').textContent=cloud.stale?'DATEN VERALTET':runnerOk?'SYSTEM OK':'PRÜFEN';
   $('systemHeadline').style.color=cloud.stale?'var(--warn)':runnerOk?'var(--good)':'var(--bad)';
   $('systemSubline').textContent=cloud.stale?'Letzter Cloud-Snapshot ist älter als vorgesehen':runnerOk?'NAS, Runner und Cloud liefern Daten':'Runner-/Datenstatus prüfen';
+
+  const ageMinRaw=cloud.age_seconds==null?null:cloud.age_seconds/60;
+  const systemState=runnerOk?'good':'bad';
+  const dataState=cloud.stale?'bad':(ageMinRaw!=null&&ageMinRaw>5?'warn':'good');
+  const strategyState=meta.candidate_ready?'good':'warn';
+  const robustEvidence=Boolean(base.robust_stability_gate||meta.robust_stability_gate||base.temporal_stable_positive);
+  const evidencePresent=Number(base.n||st.audit_eligibility?.bar_oos_research_count||0)>0;
+  const evidenceState=robustEvidence?'good':(evidencePresent?'warn':'bad');
+
+  setMgmt('mgmtSystem',systemState,runnerOk?'läuft':'prüfen');
+  setMgmt('mgmtData',dataState,cloud.stale?'veraltet':(ageMinRaw==null?'kein Snapshot':Math.round(ageMinRaw)+' min alt'));
+  setMgmt('mgmtStrategy',strategyState,meta.candidate_ready?'Challenger bereit':'Research läuft');
+  setMgmt('mgmtEvidence',evidenceState,robustEvidence?'robust':'noch vorläufig');
+
+  $('mgmtSystemDetail').textContent=runnerOk?'GRÜN':'ROT';
+  $('mgmtSystemDetail').style.color=runnerOk?'var(--good)':'var(--bad)';
+  $('mgmtSystemDetailMeta').textContent=runnerOk?'Runner erreichbar · keine aktuelle Fehlermeldung':'Runner oder Systemzustand prüfen';
+
+  $('mgmtDataDetail').textContent=dataState==='good'?'GRÜN':dataState==='warn'?'ORANGE':'ROT';
+  $('mgmtDataDetail').style.color=dataState==='good'?'var(--good)':dataState==='warn'?'var(--warn)':'var(--bad)';
+  $('mgmtDataDetailMeta').textContent=cloud.stale?'Snapshot älter als '+(cloud.stale_after_minutes||10)+' Minuten':(ageMinRaw==null?'Kein Snapshot-Alter verfügbar':'Snapshot '+Math.round(ageMinRaw)+' Minuten alt');
+
+  $('mgmtStrategyDetail').textContent=meta.candidate_ready?'GRÜN':'ORANGE';
+  $('mgmtStrategyDetail').style.color=meta.candidate_ready?'var(--good)':'var(--warn)';
+  $('mgmtStrategyDetailMeta').textContent=meta.candidate_ready?'Challenger-Gate erreicht':'Validierung läuft · V11 bleibt unverändert';
+
+  $('mgmtEvidenceDetail').textContent=robustEvidence?'GRÜN':evidencePresent?'ORANGE':'ROT';
+  $('mgmtEvidenceDetail').style.color=robustEvidence?'var(--good)':evidencePresent?'var(--warn)':'var(--bad)';
+  $('mgmtEvidenceDetailMeta').textContent=robustEvidence?'Stabilitätskriterium erfüllt':evidencePresent?'Evidenz vorhanden, aber noch nicht robust bestätigt':'Keine ausreichende Evidenz verfügbar';
+
   $('runner').textContent=st.version?('v'+st.version):'–'; $('runnerMeta').textContent=hist.reachable===false?'nicht erreichbar':(st.last_error?'Fehler':'erreichbar');
   $('strategy').textContent='V11 Frozen'; $('strategyMeta').textContent=st.frozen_v11_fingerprint||'–';
   $('barN').textContent=int(st.audit_eligibility?.bar_oos_research_count); $('barMeta').textContent='Mean '+num(st.audit_eligibility?.bar_oos_mean_net_r,3)+' R';
