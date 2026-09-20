@@ -117,6 +117,37 @@ body.detail-mode .compact-only{display:none}
   </div>
 </section>
 
+<section class="section" id="forwardShadowSection">
+  <div class="sectionhead">
+    <div><span class="eyebrow">NUR SIMULATION</span><h2>Forward Shadow · EU & US</h2></div>
+    <span id="forwardUpdated">keine Orders</span>
+  </div>
+  <div class="two">
+    <div class="card">
+      <span>US · Frozen V11</span>
+      <strong id="usForwardStatus">WARTET</strong>
+      <small id="usForwardMeta">0 Signale · 0 simulierte Trades</small>
+    </div>
+    <div class="card">
+      <span>EU · Research Shadow</span>
+      <strong id="euForwardStatus">WARTET</strong>
+      <small id="euForwardMeta">Spec / Collector noch nicht bestätigt</small>
+    </div>
+  </div>
+  <div class="detail-only" style="margin-top:8px">
+    <div class="two">
+      <div class="card">
+        <div class="row"><b>US heute</b><em id="usForwardToday">–</em></div>
+        <div class="row"><b>Datenqualität</b><em id="usForwardQuality">–</em></div>
+      </div>
+      <div class="card">
+        <div class="row"><b>EU heute</b><em id="euForwardToday">–</em></div>
+        <div class="row"><b>Datenqualität</b><em id="euForwardQuality">–</em></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <details class="panel" id="strategyPanel">
   <summary><b>Strategieentwicklung</b><span id="strategySummary">H1–H5 · Research only</span></summary>
   <div class="inside">
@@ -335,6 +366,42 @@ function render(data){
   const names={H1_STOP_GT_2_5:'H1 · Stop >2,5 %',H2_SIGNAL_1020_PLUS:'H2 · Signal 10:20–10:59',H3_ABS_GAP_10_18:'H3 · Gap 10–18 %',H4_CATALYST_AGE_LE_6H:'H4 · Catalyst ≤6 h',H5_CLV_GE_085:'H5 · CLV ≥0,85'};
   $('hyps').innerHTML=hyps.map(h=>{const e=h.development_extension||{},n=Number(e.n||0),ready=n>=30;return '<div class="hyp"><div><b>'+ (names[h.id]||h.definition||h.id) +'</b><span>Extension n='+int(n)+' · Net-R '+(Number(e.mean_net_r)>=0?'+':'')+num(e.mean_net_r,3)+' · PF '+num(e.profit_factor,3)+'</span></div><em>V12</em><em style="color:'+(ready?'var(--good)':'var(--warn)')+'">'+(ready?'PRÜFBAR':n?'PRELIMINARY':'WARTET')+'</em></div>'}).join('')||'<div class="hyp"><div><b>H1–H5</b><span>Warten auf Research-Daten</span></div><em>V12</em><em>WARTET</em></div>';
   const researchData=s?.endpoints?.research?.data||{};
+  const forward=firstObj(
+    st?.forward_shadow,
+    meta?.forward_shadow,
+    researchData?.forward_shadow,
+    s?.forward_shadow
+  );
+  const usForward=firstObj(forward?.us,forward?.US,forward?.markets?.US);
+  const euForward=firstObj(forward?.eu,forward?.EU,forward?.markets?.EU);
+  function forwardStatus(obj,fallback){
+    return obj?.status||obj?.state||obj?.market_session_state||fallback;
+  }
+  function forwardCount(obj,...keys){
+    const v=metric(obj,...keys);
+    return v==null?0:Number(v)||0;
+  }
+  const usStatus=forwardStatus(usForward,'WARTET');
+  const euStatus=forwardStatus(euForward,'WARTET');
+  $('usForwardStatus').textContent=usStatus;
+  $('euForwardStatus').textContent=euStatus;
+  $('usForwardStatus').style.color=/blocked|error|failed/i.test(usStatus)?'var(--bad)':/running|active|ready|open/i.test(usStatus)?'var(--good)':'var(--warn)';
+  $('euForwardStatus').style.color=/blocked|error|failed/i.test(euStatus)?'var(--bad)':/running|active|ready|open/i.test(euStatus)?'var(--good)':'var(--warn)';
+  const usSignals=forwardCount(usForward,'signals','signal_count');
+  const usTrades=forwardCount(usForward,'simulated_entries','simulated_trades','completed_outcomes');
+  const euSignals=forwardCount(euForward,'signals','signal_count');
+  const euTrades=forwardCount(euForward,'simulated_entries','simulated_trades','completed_outcomes');
+  $('usForwardMeta').textContent=int(usSignals)+' Signale · '+int(usTrades)+' simulierte Trades';
+  $('euForwardMeta').textContent=(euForward.spec_version?('Spec '+euForward.spec_version+' · '):'')+int(euSignals)+' Signale · '+int(euTrades)+' simulierte Trades';
+  const usR=metric(usForward,'today_net_r','day_net_r','net_r_today');
+  const euR=metric(euForward,'today_net_r','day_net_r','net_r_today');
+  $('usForwardToday').textContent=(usR==null?'–':((Number(usR)>0?'+':'')+num(usR,2)+' R'))+' · '+int(usTrades)+' Trades';
+  $('euForwardToday').textContent=(euR==null?'–':((Number(euR)>0?'+':'')+num(euR,2)+' R'))+' · '+int(euTrades)+' Trades';
+  $('usForwardQuality').textContent=usForward.data_quality||usForward.audit_status||'–';
+  $('euForwardQuality').textContent=euForward.data_quality||euForward.audit_status||'–';
+  const fwdUpdated=forward.updated_at||usForward.updated_at||euForward.updated_at;
+  $('forwardUpdated').textContent=fwdUpdated?('Stand '+new Date(fwdUpdated).toLocaleString('de-DE')+' · keine Orders'):'keine Orders · wartet auf Forward-State';
+
   const masterReport=firstObj(
     st?.master_reporting,
     meta?.master_reporting,
