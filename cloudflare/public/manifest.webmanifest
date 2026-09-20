@@ -1,0 +1,19 @@
+{
+  "name": "UGREEN Trading Control",
+  "short_name": "Trading Control",
+  "description": "Read-only mobile cockpit for the UGREEN Hot-Stocks research system",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#08101a",
+  "theme_color": "#0b111b",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
