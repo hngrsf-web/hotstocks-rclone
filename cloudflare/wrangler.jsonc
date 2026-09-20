@@ -8,6 +8,12 @@
     "binding": "ASSETS",
     "run_worker_first": true
   },
+  "kv_namespaces": [
+    {
+      "binding": "SNAPSHOT_KV",
+      "id": "6ccf797c14704643a023169a85b65d08"
+    }
+  ],
   "vars": {
     "CLOUD_USER": "trading",
     "STALE_MINUTES": "10"
