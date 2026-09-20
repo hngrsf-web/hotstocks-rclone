@@ -159,6 +159,25 @@ body.detail-mode .compact-only{display:none}
   </div>
 </details>
 
+<section class="section" id="masterReportSection">
+  <div class="sectionhead">
+    <div><span class="eyebrow">MASTER REPORTING</span><h2>Aktueller Tagesstand</h2></div>
+    <span id="masterReportUpdated">wartet auf ersten Tagesreport</span>
+  </div>
+  <div class="two">
+    <div class="card">
+      <div class="row"><b>Gesamtstatus</b><em id="masterOverall">–</em></div>
+      <div class="row"><b>Neueste bestätigte Erkenntnis</b><em id="masterInsight">–</em></div>
+      <div class="row"><b>Aktueller Blocker</b><em id="masterBlocker">–</em></div>
+    </div>
+    <div class="card">
+      <div class="row"><b>Nächster Gate</b><em id="masterNextGate">–</em></div>
+      <div class="row"><b>Nutzeraktion</b><em id="masterAction">Keine Aktion nötig</em></div>
+      <div class="row"><b>Adaptive / AutoOps</b><em id="masterAdaptive">–</em></div>
+    </div>
+  </div>
+</section>
+
 <section class="section" id="adaptiveLabSection">
   <div class="sectionhead">
     <div><span class="eyebrow">PARALLELE STUDIE</span><h2>Adaptive Strategy Lab · V11 Vergleich</h2></div>
@@ -298,6 +317,23 @@ function render(data){
   const names={H1_STOP_GT_2_5:'H1 · Stop >2,5 %',H2_SIGNAL_1020_PLUS:'H2 · Signal 10:20–10:59',H3_ABS_GAP_10_18:'H3 · Gap 10–18 %',H4_CATALYST_AGE_LE_6H:'H4 · Catalyst ≤6 h',H5_CLV_GE_085:'H5 · CLV ≥0,85'};
   $('hyps').innerHTML=hyps.map(h=>{const e=h.development_extension||{},n=Number(e.n||0),ready=n>=30;return '<div class="hyp"><div><b>'+ (names[h.id]||h.definition||h.id) +'</b><span>Extension n='+int(n)+' · Net-R '+(Number(e.mean_net_r)>=0?'+':'')+num(e.mean_net_r,3)+' · PF '+num(e.profit_factor,3)+'</span></div><em>V12</em><em style="color:'+(ready?'var(--good)':'var(--warn)')+'">'+(ready?'PRÜFBAR':n?'PRELIMINARY':'WARTET')+'</em></div>'}).join('')||'<div class="hyp"><div><b>H1–H5</b><span>Warten auf Research-Daten</span></div><em>V12</em><em>WARTET</em></div>';
   const researchData=s?.endpoints?.research?.data||{};
+  const masterReport=firstObj(
+    st?.master_reporting,
+    meta?.master_reporting,
+    researchData?.master_reporting,
+    s?.master_reporting
+  );
+  const masterHasData=Object.keys(masterReport).length>0;
+  $('masterOverall').textContent=masterReport.overall_status||masterReport.status||(masterHasData?'AKTUELL':'WARTET');
+  $('masterOverall').style.color=/rot|critical|error|blocked/i.test($('masterOverall').textContent)?'var(--bad)':/orange|warn|research|prelim/i.test($('masterOverall').textContent)?'var(--warn)':masterHasData?'var(--good)':'var(--muted)';
+  $('masterInsight').textContent=masterReport.latest_confirmed_insight||masterReport.latest_insight||'–';
+  $('masterBlocker').textContent=masterReport.latest_blocker||'Kein bestätigter Blocker';
+  $('masterNextGate').textContent=masterReport.next_gate||'–';
+  $('masterAction').textContent=masterReport.user_action||masterReport.action_required||'Keine Aktion nötig';
+  const reportAdaVersion=masterReport.adaptive_version||masterReport.adaptive_software_version||'–';
+  const reportAutoOps=masterReport.autoops_status||masterReport.updater_status||'–';
+  $('masterAdaptive').textContent=(reportAdaVersion==='–'?'Adaptive –':'Adaptive v'+String(reportAdaVersion).replace(/^v/i,''))+' · AutoOps '+reportAutoOps;
+  $('masterReportUpdated').textContent=masterReport.latest_report_at?('Tagesreport '+new Date(masterReport.latest_report_at).toLocaleString('de-DE')):(masterHasData?'Reporting-Daten vorhanden':'wartet auf ersten Tagesreport');
   const adaptive=firstObj(
     st?.adaptive_strategy_lab,
     meta?.adaptive_strategy_lab,
