@@ -73,6 +73,12 @@ body.detail-mode .compact-only{display:none}
 .adaptive-kpis strong{font-size:17px}
 .adaptive-kpis small{font-size:7px}
 .master-compact{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.auto-loop{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.auto-loop .card{min-width:0}.auto-loop strong{font-size:13px;overflow-wrap:anywhere}
+.auto-loop small{min-height:22px}.source-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.source-grid strong{font-size:15px}
+@media(max-width:800px){.auto-loop,.source-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){.auto-loop,.source-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.adaptive-kpis{grid-template-columns:1fr 1fr}.adaptive-kpis .card:first-child{grid-column:1/-1}.master-compact{grid-template-columns:1fr}}
 @media(max-width:650px){.compare-head,.compare-row{grid-template-columns:1.2fr 1fr 1fr}.compare-head>:nth-child(4),.compare-row>:nth-child(4){display:none}.adaptive-status{grid-template-columns:1fr 1fr}.adaptive-status>:first-child{grid-column:1/-1}}
 </style>
@@ -122,6 +128,25 @@ body.detail-mode .compact-only{display:none}
   <div class="two">
     <div class="card notice"><span>Aktueller Bottleneck</span><strong id="bottleneck">–</strong><small id="bottleneckMeta">–</small></div>
     <div class="card"><span>Nächste Strategieentscheidung</span><strong id="nextAction">–</strong><small id="nextActionMeta">–</small></div>
+  </div>
+</section>
+
+<section class="section" id="autonomousLoopSection">
+  <div class="sectionhead">
+    <div><span class="eyebrow">AUTONOMER ZYKLUS</span><h2>Engpass → Maßnahme → Wirkung</h2></div>
+    <span id="autoLoopStatus">READY_FOR_REVIEW</span>
+  </div>
+  <div class="auto-loop">
+    <div class="card notice"><span>Warum</span><strong id="autoWhy">–</strong><small id="autoWhyMeta">Nur beobachtete Snapshot-Daten</small></div>
+    <div class="card"><span>Automatische Maßnahme</span><strong id="autoAction">–</strong><small id="autoActionMeta">Keine Strategieänderung</small></div>
+    <div class="card"><span>PRE → POST</span><strong id="autoPrePost">–</strong><small id="autoPrePostMeta">Nur bestätigte Messwerte</small></div>
+    <div class="card"><span>Nächster Engpass</span><strong id="autoNext">–</strong><small id="autoResult">–</small></div>
+  </div>
+  <div class="source-grid">
+    <div class="card"><span>Local / Parquet / RVOL</span><strong id="sourceLocal">–</strong><small id="sourceLocalMeta">Hits / Reuse</small></div>
+    <div class="card"><span>Alpaca SIP</span><strong id="sourceAlpaca">–</strong><small id="sourceAlpacaMeta">Requests / Hits / Fehler</small></div>
+    <div class="card"><span>IBKR Fallback</span><strong id="sourceIbkr">–</strong><small id="sourceIbkrMeta">Requests / Pacing</small></div>
+    <div class="card"><span>Neue Evidenz</span><strong id="sourceEvidence">–</strong><small id="sourceEvidenceMeta">Outcomes seit letztem Zyklus</small></div>
   </div>
 </section>
 
@@ -387,6 +412,37 @@ function render(data){
   $('candpm').textContent=num(thr.candidates_per_min,1); $('catpm').textContent=num(thr.catalyst_per_min,1); $('intrpm').textContent=num(thr.intraday_per_min,1); $('modelpm').textContent=num(thr.model_per_min,1);
   $('bottleneck').textContent=eta.bottleneck||'–'; $('bottleneckMeta').textContent=eta.pipeline_seconds?('Pipeline ETA '+Math.round(eta.pipeline_seconds/60)+' min'):'keine ETA';
   $('performanceSummary').textContent=(eta.bottleneck||'kein Bottleneck')+' · Model '+num(thr.model_per_min,1)+'/min';
+
+  const autonomous=firstObj(st?.autonomous_loop,meta?.autonomous_loop,researchData?.autonomous_loop,s?.autonomous_loop);
+  const localHits=Number(st.intraday_cache_hits||0)+Number(st.intraday_parquet_hits||0)+Number(st.intraday_rvol_cache_hits||0);
+  const alpacaReq=Number(st.intraday_alpaca_requests||0),alpacaHits=Number(st.intraday_alpaca_hits||0),alpacaErr=Number(st.intraday_alpaca_errors||0);
+  const ibkrReq=Number(st.intraday_ibkr_requests||0),ibkrPacing=Number(st.intraday_ibkr_pacing_events||0);
+  const newOutcomes=Number(st.prediction_new_outcomes||0);
+  const rvolQueue=Number(st.intraday_rvol_harvest_queue||0);
+  const alpacaInactive=alpacaReq===0&&rvolQueue>0&&localHits===0;
+  const derivedWhy=alpacaInactive?'Alpaca-Routing nicht aktiv':(eta.bottleneck||'Kein verifizierter Engpass');
+  const derivedAction=alpacaInactive?'Source-Selection / Konfiguration prüfen':eta.bottleneck==='daily_prefilter'?'Prefilter + Catalyst lokal materialisieren':'Weiter messen';
+  $('autoLoopStatus').textContent=autonomous.status||autonomous.state||(newOutcomes>0?'EVIDENZ FORTSCHRITT':alpacaInactive?'STAGNATION RECOVERY':'BEOBACHTUNG');
+  $('autoLoopStatus').style.color=newOutcomes>0?'var(--good)':alpacaInactive?'var(--bad)':'var(--warn)';
+  $('autoWhy').textContent=autonomous.why||autonomous.root_cause||derivedWhy;
+  $('autoWhyMeta').textContent=autonomous.why_detail||('Bottleneck '+(eta.bottleneck||'–')+' · RVOL-Queue '+int(rvolQueue));
+  $('autoAction').textContent=autonomous.action||autonomous.automatic_action||derivedAction;
+  $('autoActionMeta').textContent=autonomous.action_status||'Read-only Diagnose · V11 unverändert';
+  const pre=autonomous.pre,post=autonomous.post;
+  $('autoPrePost').textContent=(pre!=null||post!=null)?((pre??'–')+' → '+(post??'–')):'NOCH OFFEN';
+  $('autoPrePostMeta').textContent=autonomous.effect||autonomous.result||'Keine bestätigte vergleichbare PRE/POST-Serie';
+  $('autoNext').textContent=autonomous.next_bottleneck||autonomous.next_action||(alpacaInactive?'Alpaca-Request + Hit nachweisen':eta.bottleneck||'–');
+  $('autoResult').textContent=newOutcomes>0?('+'+int(newOutcomes)+' neue Outcomes'):alpacaInactive?'0 neue Outcomes · Quelle prüfen':'Keine neue Evidenz gemeldet';
+  $('sourceLocal').textContent=int(localHits)+' Hits';
+  $('sourceLocalMeta').textContent='Cache '+int(st.intraday_cache_hits)+' · Parquet '+int(st.intraday_parquet_hits)+' · RVOL '+int(st.intraday_rvol_cache_hits);
+  $('sourceAlpaca').textContent=int(alpacaReq)+' / '+int(alpacaHits);
+  $('sourceAlpaca').style.color=alpacaHits>0?'var(--good)':alpacaReq>0&&alpacaErr>0?'var(--bad)':'var(--warn)';
+  $('sourceAlpacaMeta').textContent='Requests / Hits · Fehler '+int(alpacaErr)+' · Latenz '+(st.intraday_alpaca_avg_latency_s==null?'–':num(st.intraday_alpaca_avg_latency_s,2)+' s');
+  $('sourceIbkr').textContent=int(ibkrReq)+' Requests';
+  $('sourceIbkrMeta').textContent='Pacing '+int(ibkrPacing)+' · Read-only Fallback';
+  $('sourceEvidence').textContent=newOutcomes>0?('+'+int(newOutcomes)):'0';
+  $('sourceEvidence').style.color=newOutcomes>0?'var(--good)':'var(--warn)';
+  $('sourceEvidenceMeta').textContent='Bar-OOS gesamt '+int(st.audit_eligibility?.bar_oos_research_count);
   $('profile').textContent=st.effective_profile||st.effective_plan?.name||'–'; $('systemMeta').textContent='Queue '+int(st.candidate_queue)+' · Temp '+num(hist.host?.cpu_temperature?.celsius,1)+' °C';
   $('baseMean').textContent=num(base.mean_net_r,3)+' R'; $('basePf').textContent=num(base.profit_factor,3); $('baseDd').textContent=num(base.max_drawdown_r,1)+' R'; $('baseStable').textContent=base.temporal_stable_positive?'JA':'NEIN';
   $('holdout').textContent=(hold.holdout_locked&&Number(hold.rows_scanned||0)===0)?'LOCKED · unberührt':'PRÜFEN';
