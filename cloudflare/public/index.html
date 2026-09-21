@@ -413,7 +413,7 @@ function render(data){
   $('bottleneck').textContent=eta.bottleneck||'–'; $('bottleneckMeta').textContent=eta.pipeline_seconds?('Pipeline ETA '+Math.round(eta.pipeline_seconds/60)+' min'):'keine ETA';
   $('performanceSummary').textContent=(eta.bottleneck||'kein Bottleneck')+' · Model '+num(thr.model_per_min,1)+'/min';
 
-  const autonomous=firstObj(st?.autonomous_loop,meta?.autonomous_loop,researchData?.autonomous_loop,s?.autonomous_loop);
+  const autonomous=firstObj(st?.autonomous_loop,meta?.autonomous_loop,s?.endpoints?.research?.data?.autonomous_loop,s?.autonomous_loop);
   const localHits=Number(st.intraday_cache_hits||0)+Number(st.intraday_parquet_hits||0)+Number(st.intraday_rvol_cache_hits||0);
   const alpacaReq=Number(st.intraday_alpaca_requests||0),alpacaHits=Number(st.intraday_alpaca_hits||0),alpacaErr=Number(st.intraday_alpaca_errors||0);
   const ibkrReq=Number(st.intraday_ibkr_requests||0),ibkrPacing=Number(st.intraday_ibkr_pacing_events||0);
