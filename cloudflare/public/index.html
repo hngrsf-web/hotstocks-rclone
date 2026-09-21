@@ -509,8 +509,10 @@ function render(data){
   $('adaptiveModel').textContent=adaptiveHasData?(adaptive.model_id||adaptive.version||'Adaptive Policy'):'WARTET';
   $('adaptiveModel').style.color=adaptiveHasData?'var(--accent)':'var(--warn)';
   $('adaptiveModelMeta').textContent=(adaptive.feature_version?('Features '+adaptive.feature_version+' · '):'')+'Research / Shadow · keine Live-Orders';
+  const adaptiveSync=firstObj(researchData?.adaptive_sync,st?.adaptive_sync,meta?.adaptive_sync,s?.adaptive_sync);
+  const adaptiveSyncStatus=adaptiveSync.status||adaptiveSync.sync_status||'';
   $('adaptiveState').textContent=adaptive.state||adaptive.lifecycle_state||(adaptiveHasData?'RESEARCH':'–');
-  $('adaptiveStateMeta').textContent=adaptive.drift_status?('Drift '+adaptive.drift_status):(adaptiveHasData?'Walk-Forward / Shadow':'Noch keine Auswertung');
+  $('adaptiveStateMeta').textContent=(adaptive.drift_status?('Drift '+adaptive.drift_status):(adaptiveHasData?'Walk-Forward / Shadow':'Noch keine Auswertung'))+(adaptiveSyncStatus?(' · Sync '+adaptiveSyncStatus.replace(/^ADAPTIVE_SYNC_/,'').replaceAll('_',' ')):'');
   const adaptiveVersion=adaptive.software_version||adaptive.runner_version||adaptive.version||'–';
   $('adaptiveVersion').textContent=adaptiveVersion==='–'?'–':('v'+String(adaptiveVersion).replace(/^v/i,''));
   $('adaptiveVersion').style.color=adaptiveVersion==='–'?'var(--muted)':'var(--accent)';
