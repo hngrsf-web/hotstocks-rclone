@@ -81,6 +81,12 @@ body.detail-mode .compact-only{display:none}
 @media(max-width:430px){.auto-loop,.source-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.adaptive-kpis{grid-template-columns:1fr 1fr}.adaptive-kpis .card:first-child{grid-column:1/-1}.master-compact{grid-template-columns:1fr}}
 @media(max-width:650px){.compare-head,.compare-row{grid-template-columns:1.2fr 1fr 1fr}.compare-head>:nth-child(4),.compare-row>:nth-child(4){display:none}.adaptive-status{grid-template-columns:1fr 1fr}.adaptive-status>:first-child{grid-column:1/-1}}
+
+.stage5-grid{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:9px}
+.metric-big{font-size:24px!important}.research-tag{font-size:7px!important;color:var(--warn)!important;text-transform:uppercase}
+.mini-track{height:9px;background:#08101a;border:1px solid var(--line);border-radius:99px;overflow:hidden;margin-top:9px}
+.mini-track i{display:block;height:100%;background:linear-gradient(90deg,#4f8ecf,#62d6a6);width:0}
+@media(max-width:800px){.stage5-grid{grid-template-columns:1fr 1fr}.stage5-grid>:first-child{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -178,6 +184,26 @@ body.detail-mode .compact-only{display:none}
         <div class="row"><b>Datenqualität</b><em id="euForwardQuality">–</em></div>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="section" id="stage5Section">
+  <div class="sectionhead"><div><span class="eyebrow">EVIDENCE RECOVERY</span><h2>Stage 5 · Strict Evidence</h2></div><span id="stage5Mode">wartet</span></div>
+  <div class="stage5-grid">
+    <div class="card notice"><span>Workqueue</span><strong class="metric-big" id="stage5Queue">–</strong><small id="stage5QueueMeta">Collect-first · Strict pausiert bis 510/510</small><div class="mini-track"><i id="stage5Bar"></i></div></div>
+    <div class="card"><span>V2 Evidence</span><strong id="stage5V2">–</strong><small id="stage5V2Meta">externe Payloads</small></div>
+    <div class="card"><span>Strict</span><strong id="stage5Strict">–</strong><small id="stage5StrictMeta">keine Canonical Promotion</small></div>
+    <div class="card"><span>Guardrails</span><strong id="stage5Guard">–</strong><small id="stage5GuardMeta">Frozen V11 · Orders aus</small></div>
+  </div>
+</section>
+
+<section class="section" id="barOosSection">
+  <div class="sectionhead"><div><span class="eyebrow">HISTORICAL RESEARCH</span><h2>Bar-OOS · Research Evidence</h2></div><span class="research-tag">NON-CANONICAL</span></div>
+  <div class="grid">
+    <div class="card"><span>Sample n</span><strong id="oosN">–</strong><small>HISTORICAL_BAR_OOS_RESEARCH</small></div>
+    <div class="card"><span>Mean Net-R</span><strong id="oosMean">–</strong><small>after-cost research metric</small></div>
+    <div class="card"><span>Total Net-R</span><strong id="oosTotal">–</strong><small>nicht Canonical OOS</small></div>
+    <div class="card"><span>Rolling 50</span><strong id="oosRolling">–</strong><small id="oosRollingMeta">Trend · nicht Promotion</small></div>
   </div>
 </section>
 
@@ -615,6 +641,44 @@ function render(data){
   }else{
     $('adaptiveVerdict').textContent='Noch keine gepaarten Vergleichsdaten. Sobald das Adaptive Lab erste Walk-Forward-/Shadow-Outcomes erzeugt, werden Verbesserung und Verschlechterung hier automatisch angezeigt.';
   }
+
+  // UI_ONLY_20260925_CONTROL_PLANE: fail-soft Stage-5 + authoritative Bar-OOS mapping.
+  const s5=firstObj(st?.stage5_evidence_workqueue,st?.stage5_workqueue,st?.execution_evidence_workqueue);
+  const s5Total=Number(metric(s5,'total','total_count')??510);
+  const s5Done=Number(metric(s5,'done','done_count','completed')??0);
+  const s5Pending=Number(metric(s5,'pending','pending_count')??Math.max(0,s5Total-s5Done));
+  const s5Pct=s5Total>0?Math.max(0,Math.min(100,100*s5Done/s5Total)):0;
+  $('stage5Queue').textContent=int(s5Done)+' / '+int(s5Total);
+  $('stage5QueueMeta').textContent=int(s5Pending)+' pending · '+num(s5Pct,1)+' %';
+  $('stage5Bar').style.width=s5Pct+'%';
+  const s5Priority=Boolean(st?.stage5_recovery_priority_active);
+  const strict=firstObj(st?.strict_execution_audit,st?.strict_audit,st?.execution_audit_strict);
+  const strictPending=metric(strict,'pending','strict_pending');
+  $('stage5Mode').textContent=s5Pending===0&&s5Done>=s5Total?'EVIDENCE COMPLETE':s5Priority?'COLLECT-FIRST':'BEOBACHTUNG';
+  $('stage5Mode').style.color=s5Done>=s5Total?'var(--good)':'var(--warn)';
+  const v2=firstObj(st?.stage5_evidence_store_v2,st?.evidence_store_v2);
+  const v2Files=metric(v2,'files','file_count','evidence_files');
+  $('stage5V2').textContent=v2Files==null?'–':int(v2Files)+' Files';
+  $('stage5V2Meta').textContent=v2?.status||'Evidence Store V2';
+  $('stage5Strict').textContent=strictPending==null?(s5Priority?'PAUSED':'–'):int(strictPending)+' pending';
+  $('stage5StrictMeta').textContent=s5Priority?'bis Evidence 510/510 pausiert':'SHADOW_ONLY · keine Canonical Promotion';
+  const guardOk=st?.frozen_v11_fingerprint==='42d1432ffd59a06a'&&st?.can_place_orders===false;
+  $('stage5Guard').textContent=guardOk?'OK':'PRÜFEN';
+  $('stage5Guard').style.color=guardOk?'var(--good)':'var(--bad)';
+  $('stage5GuardMeta').textContent='V11 '+(st?.frozen_v11_fingerprint||'–')+' · Orders '+(st?.can_place_orders===false?'AUS':'PRÜFEN');
+
+  const perf=firstObj(s?.endpoints?.performance_trend?.data,st?.performance_trend,s?.performance_trend);
+  const overall=firstObj(perf?.overall,perf?.summary,perf);
+  const oosN=metric(overall,'n','cache_key_n','sample_n')??metric(perf,'cache_key_n');
+  const oosMean=metric(overall,'mean_net_r','cumulative_mean_net_r');
+  const oosTotal=metric(overall,'total_net_r','cumulative_total_net_r','sum_r');
+  const oosRoll=metric(overall,'rolling_50_mean_net_r','rolling50','rolling_50');
+  $('oosN').textContent=oosN==null?'–':int(oosN);
+  $('oosMean').textContent=oosMean==null?'–':num(oosMean,3)+' R';
+  $('oosTotal').textContent=oosTotal==null?'–':num(oosTotal,2)+' R';
+  $('oosRolling').textContent=oosRoll==null?'–':num(oosRoll,3)+' R';
+  $('oosRolling').style.color=oosRoll==null?'var(--muted)':Number(oosRoll)>0?'var(--good)':'var(--bad)';
+  $('oosRollingMeta').textContent='BAR-OOS RESEARCH · canonical=false';
 
   $('snapshotTime').textContent=cloud.source_generated_at?new Date(cloud.source_generated_at).toLocaleString('de-DE'):'Noch keine Daten';
   $('snapshotMeta').textContent=(cloud.age_seconds!=null?('Alter '+Math.round(cloud.age_seconds/60)+' min · '):'')+'Read-only · NAS nur ausgehend verbunden';
