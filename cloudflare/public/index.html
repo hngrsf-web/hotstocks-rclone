@@ -401,8 +401,15 @@ function render(data){
   const systemState=runnerOk?'good':'bad';
   const dataState=cloud.stale?'bad':(ageMinRaw!=null&&ageMinRaw>5?'warn':'good');
   const strategyState=meta.candidate_ready?'good':'warn';
+  const strictNow=firstObj(st?.strict_execution_incremental,st?.strict_execution_audit,st?.strict_audit,st?.execution_audit_strict);
+  const strictTotal=Number(st?.stage5_evidence_workqueue?.total??510);
+  const strictCached=metric(strictNow,'cached_total','cached');
+  const strictPending=metric(strictNow,'pending','strict_pending');
+  const strictProven=metric(strictNow,'strict_trigger_proven','proven');
+  const strictRejected=metric(strictNow,'rejected');
+  const strictInsufficient=metric(strictNow,'insufficient_evidence');
   const robustEvidence=Boolean(base.robust_stability_gate||meta.robust_stability_gate||base.temporal_stable_positive);
-  const evidencePresent=Number(base.n||st.audit_eligibility?.bar_oos_research_count||0)>0;
+  const evidencePresent=Number(base.n||st.audit_eligibility?.bar_oos_research_count||strictCached||0)>0;
   const evidenceState=robustEvidence?'good':(evidencePresent?'warn':'bad');
 
   setMgmt('mgmtSystem',systemState,runnerOk?'läuft':'prüfen');
@@ -422,9 +429,9 @@ function render(data){
   $('mgmtStrategyDetail').style.color=meta.candidate_ready?'var(--good)':'var(--warn)';
   $('mgmtStrategyDetailMeta').textContent=meta.candidate_ready?'Challenger-Gate erreicht':'Validierung läuft · V11 bleibt unverändert';
 
-  $('mgmtEvidenceDetail').textContent=robustEvidence?'GRÜN':evidencePresent?'ORANGE':'ROT';
-  $('mgmtEvidenceDetail').style.color=robustEvidence?'var(--good)':evidencePresent?'var(--warn)':'var(--bad)';
-  $('mgmtEvidenceDetailMeta').textContent=robustEvidence?'Stabilitätskriterium erfüllt':evidencePresent?'Evidenz vorhanden, aber noch nicht robust bestätigt':'Keine ausreichende Evidenz verfügbar';
+  $('mgmtEvidenceDetail').textContent=strictCached!=null?(Number(strictPending)===0?'GRÜN':'ORANGE'):(robustEvidence?'GRÜN':evidencePresent?'ORANGE':'ROT');
+  $('mgmtEvidenceDetail').style.color=strictCached!=null?(Number(strictPending)===0?'var(--good)':'var(--warn)'):(robustEvidence?'var(--good)':evidencePresent?'var(--warn)':'var(--bad)');
+  $('mgmtEvidenceDetailMeta').textContent=strictCached!=null?('Strict '+int(strictCached)+'/'+int(strictTotal)+' · '+int(strictPending)+' pending · Proven '+int(strictProven)+' · Rejected '+int(strictRejected)+' · Insufficient '+int(strictInsufficient)):(robustEvidence?'Stabilitätskriterium erfüllt':evidencePresent?'Evidenz vorhanden, aber noch nicht robust bestätigt':'Keine ausreichende Evidenz verfügbar');
 
   $('runner').textContent=st.version?('v'+st.version):'–'; $('runnerMeta').textContent=hist.reachable===false?'nicht erreichbar':(st.last_error?'Fehler':'erreichbar');
   $('strategy').textContent='V11 Frozen'; $('strategyMeta').textContent=st.frozen_v11_fingerprint||'–';
@@ -449,8 +456,9 @@ function render(data){
   const newOutcomes=Number(st.prediction_new_outcomes||0);
   const rvolQueue=Number(st.intraday_rvol_harvest_queue||0);
   const alpacaInactive=alpacaReq===0&&rvolQueue>0&&localHits===0;
-  const derivedWhy=alpacaInactive?'Alpaca-Routing nicht aktiv':(eta.bottleneck||'Kein verifizierter Engpass');
-  const derivedAction=alpacaInactive?'Source-Selection / Konfiguration prüfen':eta.bottleneck==='daily_prefilter'?'Prefilter + Catalyst lokal materialisieren':'Weiter messen';
+  const strictComplete=strictCached!=null&&Number(strictPending)===0&&Number(strictCached)>=strictTotal;
+  const derivedWhy=strictComplete?'Strict Execution vollständig; Canonical Promotion bleibt gesperrt':alpacaInactive?'Alpaca-Routing nicht aktiv':(eta.bottleneck||'Kein verifizierter Engpass');
+  const derivedAction=strictComplete?'Strict-Ergebnisse auswerten; Meta-Segmente / Challenger prüfen':alpacaInactive?'Source-Selection / Konfiguration prüfen':eta.bottleneck==='daily_prefilter'?'Prefilter + Catalyst lokal materialisieren':'Weiter messen';
   $('autoLoopStatus').textContent=autonomous.status||autonomous.state||(newOutcomes>0?'EVIDENZ FORTSCHRITT':alpacaInactive?'STAGNATION RECOVERY':'BEOBACHTUNG');
   $('autoLoopStatus').style.color=newOutcomes>0?'var(--good)':alpacaInactive?'var(--bad)':'var(--warn)';
   $('autoWhy').textContent=autonomous.why||autonomous.root_cause||derivedWhy;
@@ -460,7 +468,7 @@ function render(data){
   const pre=autonomous.pre,post=autonomous.post;
   $('autoPrePost').textContent=(pre!=null||post!=null)?((pre??'–')+' → '+(post??'–')):'NOCH OFFEN';
   $('autoPrePostMeta').textContent=autonomous.effect||autonomous.result||'Keine bestätigte vergleichbare PRE/POST-Serie';
-  $('autoNext').textContent=autonomous.next_bottleneck||autonomous.next_action||(alpacaInactive?'Alpaca-Request + Hit nachweisen':eta.bottleneck||'–');
+  $('autoNext').textContent=strictComplete?'Strict 510/510 auswerten → Strategy Lab / Challenger':(autonomous.next_bottleneck||autonomous.next_action||(alpacaInactive?'Alpaca-Request + Hit nachweisen':eta.bottleneck||'–'));
   $('autoResult').textContent=newOutcomes>0?('+'+int(newOutcomes)+' neue Outcomes'):alpacaInactive?'0 neue Outcomes · Quelle prüfen':'Keine neue Evidenz gemeldet';
   $('sourceLocal').textContent=int(localHits)+' Hits';
   $('sourceLocalMeta').textContent='Cache '+int(st.intraday_cache_hits)+' · Parquet '+int(st.intraday_parquet_hits)+' · RVOL '+int(st.intraday_rvol_cache_hits);
