@@ -387,7 +387,8 @@ function setDeltaLowerBetter(id,v,d=2,suffix=''){
   el.className=n<0?'delta-good':n>0?'delta-bad':'';
 }
 function render(data){
-  const s=data?.snapshot||{}, cloud=data?.cloud||{}, hist=getHist(s), st=hist?.state||{}, perf=st?.performance||{}, thr=perf?.throughput||{}, eta=perf?.eta||{}, meta=st?.meta_research||st?.prediction_lab?.meta_research||{};
+  // Normalize both API envelope {snapshot,cloud} and a direct snapshot object.
+  const s=data?.snapshot||((data?.endpoints||data?.historical)?data:{}), cloud=data?.cloud||s?.cloud||{}, hist=getHist(s), st=hist?.state||{}, perf=st?.performance||{}, thr=perf?.throughput||{}, eta=perf?.eta||{}, meta=st?.meta_research||st?.prediction_lab?.meta_research||{};
   const dp=st?.dataset_pipeline||{}, ext=dsByRole(dp,'DEVELOPMENT_EXTENSION')||dp?.active_or_next||{}, hold=dsByRole(dp,'HOLDOUT')||{};
   const base=meta?.development_eras?.DEVELOPMENT_BASE_2022_2026||meta?.baseline||{};
   const hyps=Array.isArray(meta?.hypothesis_registry)?meta.hypothesis_registry:[];
@@ -719,7 +720,8 @@ function renderCompactManagement(raw){
   // Normalize once so all management logic reads the NAS snapshot consistently.
   const s=raw?.snapshot||raw||{};
   const cloud=raw?.cloud||s?.cloud||{};
-  const st=s?.endpoints?.historical?.data||s?.historical?.data||s?.historical||{};
+  const histData=s?.endpoints?.historical?.data||s?.historical?.data||s?.historical||{};
+  const st=histData?.state||histData;
   const mgmtPerf=s?.endpoints?.performance_trend?.data||s?.performance_trend||{};
   const s5=st?.stage5_evidence_workqueue||st?.stage5_workqueue||st?.execution_evidence_workqueue||{};
   const strict=st?.strict_execution_incremental||{};
@@ -767,9 +769,8 @@ async function load(){
     const r=await fetch('/api/snapshot',{cache:'no-store',credentials:'same-origin',headers:{'accept':'application/json'}});
     if(!r.ok) throw new Error('snapshot HTTP '+r.status);
     const raw=await r.json();
-    const normalized=raw?.snapshot||raw;
-    // Full cockpit receives the actual snapshot; compact management also gets cloud metadata.
-    render({...normalized,cloud:raw?.cloud||normalized?.cloud||{}});
+    // Keep the API envelope intact. render() and compact management normalize it consistently.
+    render(raw);
     renderCompactManagement(raw);
   }catch(e){
     $('fresh').textContent='OFFLINE';
