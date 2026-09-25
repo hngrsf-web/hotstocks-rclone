@@ -712,7 +712,7 @@ function renderCompactManagement(raw){
   const s=raw?.snapshot||raw||{};
   const cloud=raw?.cloud||s?.cloud||{};
   const st=s?.endpoints?.historical?.data||s?.historical?.data||s?.historical||{};
-  const perf=s?.endpoints?.performance_trend?.data||s?.performance_trend||{};
+  const mgmtPerf=s?.endpoints?.performance_trend?.data||s?.performance_trend||{};
   const s5=st?.stage5_evidence_workqueue||st?.stage5_workqueue||st?.execution_evidence_workqueue||{};
   const strict=st?.strict_execution_incremental||{};
   const total=Number(s5.total??s5.total_count??510);
@@ -726,9 +726,9 @@ function renderCompactManagement(raw){
   const fresh=cloud.stale===false;
   const histOk=!(s?.endpoints?.historical?.error)&&s?.endpoints?.historical?.reachable!==false;
   const guardOk=st?.frozen_v11_fingerprint==='42d1432ffd59a06a'&&st?.can_place_orders===false;
-  const overall=perf?.overall||perf?.summary||perf;
-  const mean=overall?.mean_net_r;
-  const n=overall?.n??perf?.cache_key_n;
+  const mgmtOverall=mgmtPerf?.overall||mgmtPerf?.summary||mgmtPerf;
+  const mean=mgmtOverall?.mean_net_r;
+  const n=mgmtOverall?.n??mgmtPerf?.cache_key_n;
   function box(id,state,text){
     const el=$(id); if(!el)return;
     el.classList.remove('good','warn','bad'); el.classList.add(state);
