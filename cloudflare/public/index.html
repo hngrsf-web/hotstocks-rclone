@@ -58,7 +58,8 @@ body.detail-mode .compact-only{display:none}
 .mgmt b{display:block;font-size:9px;letter-spacing:.04em}.mgmt span{display:block;margin-top:2px;color:var(--muted);font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:none}
 .mgmt-detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
 .mgmt-detail-grid .card{padding:10px}.mgmt-detail-grid strong{font-size:12px}
-@media(max-width:850px){.management,.mgmt-detail-grid{grid-template-columns:1fr 1fr}}
+.management-five{grid-template-columns:repeat(5,1fr)}
+@media(max-width:850px){.management,.management-five,.mgmt-detail-grid{grid-template-columns:1fr 1fr}.management-five .mgmt:last-child{grid-column:1/-1}}
 @media(max-width:520px){.management{grid-template-columns:1fr 1fr}.mgmt{padding:9px}.mgmt-detail-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.three{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
 @media(max-width:520px){header,main{padding-left:11px;padding-right:11px}.grid{grid-template-columns:1fr 1fr}.flow{grid-template-columns:repeat(3,1fr)}.top{align-items:flex-start;flex-direction:column}.card strong{font-size:16px}}
@@ -102,12 +103,14 @@ body.detail-mode .compact-only{display:none}
 </div>
 </div></header>
 <main class="wrap">
-<section class="management" aria-label="Management-Status">
+<section class="management management-five" aria-label="Management-Status">
   <div class="mgmt" id="mgmtSystem"><i class="mgmt-dot"></i><div><b>SYSTEM</b><span id="mgmtSystemText">lädt …</span></div></div>
   <div class="mgmt" id="mgmtData"><i class="mgmt-dot"></i><div><b>DATEN</b><span id="mgmtDataText">lädt …</span></div></div>
   <div class="mgmt" id="mgmtStrategy"><i class="mgmt-dot"></i><div><b>STRATEGIE</b><span id="mgmtStrategyText">lädt …</span></div></div>
-  <div class="mgmt" id="mgmtEvidence"><i class="mgmt-dot"></i><div><b>EVIDENZ</b><span id="mgmtEvidenceText">lädt …</span></div></div>
+  <div class="mgmt" id="mgmtEvidence"><i class="mgmt-dot"></i><div><b>BERECHNUNG</b><span id="mgmtEvidenceText">lädt …</span></div></div>
+  <div class="mgmt" id="mgmtNext"><i class="mgmt-dot"></i><div><b>NÄCHSTER SCHRITT</b><span id="mgmtNextText">lädt …</span></div></div>
 </section>
+<div class="card compact-only" id="hourDeltaCard" style="margin-bottom:12px"><div class="keyline"><b>SEIT LETZTER STUNDE</b><span id="hourDelta">wartet auf aktuellen Snapshot</span></div></div>
 
 <section class="detail-only">
   <div class="mgmt-detail-grid">
@@ -701,8 +704,50 @@ function setDetailMode(on){
 detailToggle.addEventListener('click',()=>setDetailMode(!document.body.classList.contains('detail-mode')));
 setDetailMode(localStorage.getItem('tc_detail_mode')==='1');
 
+
+function renderCompactManagement(s){
+  const st=s?.endpoints?.historical?.data||s?.historical?.data||{};
+  const cloud=s?.cloud||{};
+  const perf=s?.endpoints?.performance_trend?.data||{};
+  const s5=st?.stage5_evidence_workqueue||st?.stage5_workqueue||st?.execution_evidence_workqueue||{};
+  const total=Number(s5.total??s5.total_count??510);
+  const doneRaw=s5.done??s5.done_count??s5.completed;
+  const pendingRaw=s5.pending??s5.pending_count;
+  const done=doneRaw==null?null:Number(doneRaw);
+  const pending=pendingRaw==null?(done==null?null:Math.max(0,total-done)):Number(pendingRaw);
+  const pct=(done!=null&&total>0)?Math.round(done/total*100):null;
+  const fresh=cloud.stale===false;
+  const histOk=!(s?.endpoints?.historical?.error)&&s?.endpoints?.historical?.reachable!==false;
+  const guardOk=st?.frozen_v11_fingerprint==='42d1432ffd59a06a'&&st?.can_place_orders===false;
+  const overall=perf?.overall||perf?.summary||perf;
+  const mean=overall?.mean_net_r;
+  const n=overall?.n??perf?.cache_key_n;
+  function box(id,state,text){
+    const el=$(id); if(!el)return;
+    el.classList.remove('good','warn','bad'); el.classList.add(state);
+    const t=$(id+'Text'); if(t)t.textContent=text;
+  }
+  box('mgmtSystem',fresh&&guardOk?'good':guardOk?'warn':'bad',fresh?'STABIL · Snapshot aktuell':guardOk?'SYNC PRÜFEN':'GUARDRAIL PRÜFEN');
+  box('mgmtData',fresh?'good':'warn',fresh?'OK · aktuelle Daten':'SNAPSHOT NICHT AKTUELL');
+  box('mgmtEvidence',done==null?'warn':pending===0?'good':'good',done==null?'STATUS NICHT MESSBAR':('LÄUFT · '+pct+' %'));
+  const strategyText=(mean==null||n==null)?'NOCH NICHT BEWERTBAR':(Number(mean)>0?'POSITIVER RESEARCH-TREND':'NOCH NICHT ROBUST');
+  box('mgmtStrategy',(mean!=null&&Number(mean)>0)?'warn':'bad',strategyText);
+  const nextText=done==null?'STATUSPFAD REPARIEREN':pending===0?'STRICT AUSWERTEN':'STAGE 5 ABSCHLIESSEN';
+  box('mgmtNext',done==null?'warn':pending===0?'good':'warn',nextText);
+  const prev=JSON.parse(localStorage.getItem('tc_compact_prev')||'null');
+  let delta='Noch kein Vorstundenvergleich';
+  if(prev&&done!=null&&prev.done!=null){
+    const d=done-prev.done;
+    delta=d>0?('Berechnung +'+d+' Fälle ↑ · keine neue Strategieaussage daraus ableiten'):d===0?'Berechnung unverändert → · Fortschritt wird geprüft':'Berechnungsstand rückläufig ⚠ · Konsistenz prüfen';
+  }
+  if(!fresh) delta+=' · Cloud-Snapshot nicht aktuell';
+  $('hourDelta').textContent=delta;
+  const now=Date.now();
+  if(!prev||now-(prev.saved_at||0)>=55*60*1000)localStorage.setItem('tc_compact_prev',JSON.stringify({done,saved_at:now}));
+}
+
 async function load(){
-  try{const r=await fetch('/api/snapshot',{cache:'no-store'});render(await r.json())}
+  try{const r=await fetch('/api/snapshot',{cache:'no-store'});const data=await r.json();render(data);renderCompactManagement(data)}
   catch(e){$('fresh').textContent='OFFLINE';$('fresh').className='badge bad'}
 }
 load();setInterval(load,15000);
