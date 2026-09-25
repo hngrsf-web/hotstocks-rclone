@@ -671,9 +671,9 @@ function render(data){
   $('stage5Guard').style.color=guardOk?'var(--good)':'var(--bad)';
   $('stage5GuardMeta').textContent='V11 '+(st?.frozen_v11_fingerprint||'–')+' · Orders '+(st?.can_place_orders===false?'AUS':'PRÜFEN');
 
-  const perf=firstObj(s?.endpoints?.performance_trend?.data,st?.performance_trend,s?.performance_trend);
-  const overall=firstObj(perf?.overall,perf?.summary,perf);
-  const oosN=metric(overall,'n','cache_key_n','sample_n')??metric(perf,'cache_key_n');
+  const oosPerf=firstObj(s?.endpoints?.performance_trend?.data,st?.performance_trend,s?.performance_trend);
+  const overall=firstObj(oosPerf?.overall,oosPerf?.summary,oosPerf);
+  const oosN=metric(overall,'n','cache_key_n','sample_n')??metric(oosPerf,'cache_key_n');
   const oosMean=metric(overall,'mean_net_r','cumulative_mean_net_r');
   const oosTotal=metric(overall,'total_net_r','cumulative_total_net_r','sum_r');
   const oosRoll=metric(overall,'rolling_50_mean_net_r','rolling50','rolling_50');
