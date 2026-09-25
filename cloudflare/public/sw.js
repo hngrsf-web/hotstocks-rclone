@@ -1,4 +1,4 @@
-const CACHE="ugreen-trading-control-shell-v1";
+const CACHE="ugreen-trading-control-shell-v2";
 const SHELL=["/","/manifest.webmanifest","/icon.svg"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).catch(()=>{}));
